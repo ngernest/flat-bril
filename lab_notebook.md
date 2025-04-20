@@ -34,3 +34,16 @@ root = ((5 * 2) + 1)
 final arena = [5, 2, 10, 1, 11]
 final interpreted value = 11
 ```
+
+
+## Related Work 
+There's a series of papers about [Gibbon](https://iu-parfunc.github.io/gibbon/), a compiler which translates ASTs to flattened representations:
+- [Compiling Tree Transforms to Operate on Packed Representations (ECOOP '17)](https://drops.dagstuhl.de/storage/00lipics/lipics-vol074-ecoop2017/LIPIcs.ECOOP.2017.26/LIPIcs.ECOOP.2017.26.pdf)
+  - ^^ OG paper about compiling an AST for a functional language to a flattened representation
+- [LoCal: A Language for Programs Operating on Serialized Data (PLDI '19)](https://dl.acm.org/doi/pdf/10.1145/3314221.3314631) 
+  - ^^ follow-up work about add type-system and surface-language support for giving the user greater control over the flattened representation
+
+- TODO: watch the video of the conference talks for these two papers?
+  - https://www.youtube.com/watch?v=YDa60NpXp6Q
+  - https://www.youtube.com/watch?v=aDIr-D5Lx08
+
