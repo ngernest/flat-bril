@@ -43,7 +43,7 @@ There's a series of papers about [Gibbon](https://iu-parfunc.github.io/gibbon/),
 - [LoCal: A Language for Programs Operating on Serialized Data (PLDI '19)](https://dl.acm.org/doi/pdf/10.1145/3314221.3314631) 
   - ^^ follow-up work about add type-system and surface-language support for giving the user greater control over the flattened representation
 
-- TODO: watch the video of the conference talks for these two papers?
-  - https://www.youtube.com/watch?v=YDa60NpXp6Q
-  - https://www.youtube.com/watch?v=aDIr-D5Lx08
+- Note: these papers are about compiling a custom language to this flattened format, 
+where the design of the language (e.g. the type system) makes it amenable to flattening.
+- Challenge: how do we take an existing language (Bril) and flatten it? 
 
