@@ -47,3 +47,15 @@ There's a series of papers about [Gibbon](https://iu-parfunc.github.io/gibbon/),
 where the design of the language (e.g. the type system) makes it amenable to flattening.
 - Challenge: how do we take an existing language (Bril) and flatten it? 
 
+## Flattening Bril
+
+When considering how we might apply the same ideas to Bril we are running into a few barriers:
+
+1. It seems as though the ASTs we consider in Bril correspond to individual instructions (and these are not recursive) so each AST is small and so unlikely to be very deep. Maybe it is not even helpful to think in terms of ASTs for Bril since it is statements rather than expressions.
+2. If it is the case that ASTs (or whatever it is we want to flatten) correspond to instructions, it seems that the representation of instructions in the Rust interpreter is already flat (as in the fields of an instruction are stored as data within the instruction in memory rather than as pointers to other regions of memory).
+
+![alt text](rust_instr.png)
+
+Although actually it seems that this may not be the case for fields with type Vec<X> or String, so maybe there is some work to be done for these fields to flatten them.
+
+Additionally maybe we want to flatten at the level of an interpreter Program object, which is clearly not flat because it has pointer to functions and functions have pointers to instructions. It is currently unclear to us at what level we want to flatten (program, function, instruction etc.). Clearly flattening at a lower level is easier. 
