@@ -3,7 +3,7 @@
 Run `cargo build` to compile. 
 Example usage:
 ```bash
-$ bril2json < test/tiny.bril | cargo run
+bril2json < test/tiny.bril | cargo run
 ```
 
 Repo structure:
