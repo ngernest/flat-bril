@@ -48,6 +48,20 @@ pub enum Opcode {
     Const = 19,
 }
 
+impl Opcode {
+    /// Returns the `(start idx, end idx)` of the opcode in the `OPCODES` buffer
+    fn get_indexes(&self) -> (usize, usize) {
+        let opcode = self.clone();
+        OPCODE_IDX[opcode as usize]
+    }
+
+    /// Converts an `Opcode` to a `&str`
+    fn as_str(&self) -> &str {
+        let (start_idx, end_idx) = self.get_indexes();
+        &OPCODES[start_idx..=end_idx]
+    }
+}
+
 const OPCODES: &str =
     "addmulsubdiveqltgtlegenotandorjmpbrcallretidprintnopconst";
 const NUM_OPCODES: usize = 20;
@@ -113,8 +127,7 @@ fn main() {
 
             println!("opcode as usize = {}", opcode.clone() as usize);
 
-            let (start_idx, end_idx) = OPCODE_IDX[opcode as usize];
-            let new_op_str = &OPCODES[start_idx..=end_idx];
+            let new_op_str = opcode.as_str();
 
             assert_eq!(op_str, new_op_str, "{} != {}", op_str, new_op_str);
         }
@@ -139,8 +152,7 @@ mod tests {
             let deserialized_op: Value =
                 serde_json::from_value(json).expect("trouble deserializing");
             let serde_op_str = deserialized_op.as_str().unwrap();
-            let (start_idx, end_idx) = OPCODE_IDX[opcode.clone() as usize];
-            let op_str: &str = &OPCODES[start_idx..=end_idx];
+            let op_str = opcode.as_str();
             assert_eq!(
                 serde_op_str, op_str,
                 "{:?} != {:?}",
