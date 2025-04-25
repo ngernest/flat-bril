@@ -50,14 +50,22 @@ pub enum Opcode {
 
 impl Opcode {
     /// Returns the `(start idx, end idx)` of the opcode in the `OPCODES` buffer
-    fn get_indexes(&self) -> (usize, usize) {
+    fn get_buffer_indexes(&self) -> (usize, usize) {
         let opcode = self.clone();
         OPCODE_IDX[opcode as usize]
     }
 
+    pub fn get_index(&self) -> usize {
+        let (start_idx, end_idx) = self.get_buffer_indexes();
+        OPCODE_IDX
+            .iter()
+            .position(|&x| x.0 == start_idx && x.1 == end_idx)
+            .expect("Opcode not present in `OPCODE_IDX`")
+    }
+
     /// Converts an `Opcode` to a `&str`
     fn as_str(&self) -> &str {
-        let (start_idx, end_idx) = self.get_indexes();
+        let (start_idx, end_idx) = self.get_buffer_indexes();
         &OPCODES[start_idx..=end_idx]
     }
 }
@@ -119,17 +127,9 @@ fn main() {
             .expect("Expected `instrs` to be a JSON array");
         for instr in instrs {
             println!("instr = {}", instr);
-            let op_str: &str =
-                instr["op"].as_str().expect("Expected `op` to be a string");
-            println!("op_str = {}", op_str);
             let opcode: Opcode = serde_json::from_value(instr["op"].clone())
                 .expect("Invalid opcode");
-
-            println!("opcode as usize = {}", opcode.clone() as usize);
-
-            let new_op_str = opcode.as_str();
-
-            assert_eq!(op_str, new_op_str, "{} != {}", op_str, new_op_str);
+            let _idx = opcode.get_index();
         }
     }
 }
@@ -141,23 +141,30 @@ mod tests {
     // We use `strum` to iterate over every variant in the `Opcode` enum easily
     use strum::IntoEnumIterator;
 
-    /// Checks that for all opcodes, their start/end indexes in `OPCODE_IDX` correct
-    /// (what this test does is it converts the opcode to a string using `serde`,
-    /// and checks that the corresponding substring when we index into `OPCODES`
-    /// is the same)
+    /// Test that opcode serialization is correct
     #[test]
-    fn test_opcode() {
+    fn test_opcode_serialization_correct() {
         for opcode in Opcode::iter() {
             let json: Value = serde_json::json!(opcode);
             let deserialized_op: Value =
                 serde_json::from_value(json).expect("trouble deserializing");
             let serde_op_str = deserialized_op.as_str().unwrap();
             let op_str = opcode.as_str();
-            assert_eq!(
-                serde_op_str, op_str,
-                "{:?} != {:?}",
-                serde_op_str, op_str
-            );
+            assert_eq!(serde_op_str, op_str);
+        }
+    }
+
+    /// Checks that for all opcodes, their start/end indexes in `OPCODE_IDX` are correct
+    /// (what this test does is it converts the opcode to a string using `serde`,
+    /// and checks that the corresponding substring when we index into `OPCODES`
+    /// is the same)
+    #[test]
+    fn test_opcode_indexes_correct() {
+        for opcode in Opcode::iter() {
+            let idx = opcode.get_index();
+            let (start_idx, end_idx) = OPCODE_IDX[idx];
+            let op_str = &OPCODES[start_idx..=end_idx];
+            assert_eq!(opcode.as_str(), op_str);
         }
     }
 }
