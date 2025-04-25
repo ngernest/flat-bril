@@ -5,13 +5,14 @@ use std::{io, io::Read};
 use strum_macros::EnumIter;
 
 #[allow(dead_code)]
+#[derive(Debug, PartialEq, Clone)]
 /// Flattened type for Bril instructions
 struct Instr {
     op: usize,
-    dest: usize,
-    ty: usize,
-    args: (usize, usize),
-    label: (usize, usize),
+    dest: Option<usize>,
+    ty: Option<usize>,
+    args: Option<(usize, usize)>,
+    label: Option<(usize, usize)>,
 }
 
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, EnumIter)]
@@ -50,13 +51,13 @@ pub enum Opcode {
 
 impl Opcode {
     /// Returns the `(start idx, end idx)` of the opcode in the `OPCODES` buffer
-    fn get_buffer_indexes(&self) -> (usize, usize) {
+    fn get_buffer_start_end_indexes(&self) -> (usize, usize) {
         let opcode = self.clone();
         OPCODE_IDX[opcode as usize]
     }
 
     pub fn get_index(&self) -> usize {
-        let (start_idx, end_idx) = self.get_buffer_indexes();
+        let (start_idx, end_idx) = self.get_buffer_start_end_indexes();
         OPCODE_IDX
             .iter()
             .position(|&x| x.0 == start_idx && x.1 == end_idx)
@@ -65,7 +66,7 @@ impl Opcode {
 
     /// Converts an `Opcode` to a `&str`
     fn as_str(&self) -> &str {
-        let (start_idx, end_idx) = self.get_buffer_indexes();
+        let (start_idx, end_idx) = self.get_buffer_start_end_indexes();
         &OPCODES[start_idx..=end_idx]
     }
 }
@@ -129,7 +130,9 @@ fn main() {
             println!("instr = {}", instr);
             let opcode: Opcode = serde_json::from_value(instr["op"].clone())
                 .expect("Invalid opcode");
-            let _idx = opcode.get_index();
+            let _opcode_idx = opcode.get_index();
+
+            let 
         }
     }
 }
