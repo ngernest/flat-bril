@@ -166,6 +166,7 @@ fn main() {
                 let _opcode_idx = opcode.get_index();
 
                 // Obtain the start/end indexes of the args
+                // TODO: test that this actually works
                 if let Some(args_json_vec) = instr["args"].as_array() {
                     let args_vec: Vec<&str> = args_json_vec
                         .iter()
