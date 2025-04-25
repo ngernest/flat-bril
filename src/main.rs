@@ -4,15 +4,19 @@ use std::{io, io::Read};
 
 use strum_macros::EnumIter;
 
-#[allow(dead_code)]
+#[allow(dead_code, unused_variables)]
 #[derive(Debug, PartialEq, Clone)]
-/// Flattened type for Bril instructions
+/// Flattened type for Bril instructions.   
+/// - `op` stores an index `i` into `OPCODE_IDX`, where
+/// `OPCODE_IDX[i] = (start, end)`, such that `OPCODE_BUFFER[start..=end]`
+/// is the serialized version of the opcode
 struct Instr {
     op: usize,
     dest: Option<usize>,
     ty: Option<usize>,
     args: Option<(usize, usize)>,
-    label: Option<(usize, usize)>,
+    labels: Option<(usize, usize)>,
+    value: Option<usize>,
 }
 
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, EnumIter)]
@@ -65,17 +69,29 @@ impl Opcode {
     }
 
     /// Converts an `Opcode` to a `&str`
+    #[allow(dead_code)]
     fn as_str(&self) -> &str {
         let (start_idx, end_idx) = self.get_buffer_start_end_indexes();
-        &OPCODES[start_idx..=end_idx]
+        &OPCODE_BUFFER[start_idx..=end_idx]
     }
 }
 
-const OPCODES: &str =
+/// A string literal storing all distinct opcodes in core Bril
+#[allow(dead_code)]
+const OPCODE_BUFFER: &str =
     "addmulsubdiveqltgtlegenotandorjmpbrcallretidprintnopconst";
+
+/// There are 20 distinct opcodes in core Bril
 const NUM_OPCODES: usize = 20;
 
-/// Each pair contains the `(start idx, end idx)` of the opcode in `OPCODES`
+/// Default length of the args array
+/// (Rust `Vec`s are initialized with a capacity that is a power of 2,
+/// we pick 64 since that seems like a reasonable upper bound for the no. of
+/// variables in a Bril function)
+const NUM_ARGS: usize = 64;
+
+/// Each pair contains the `(start idx, end idx)` of the opcode in `OPCODES`.     
+/// Note that both start and indexes are inclusive.
 const OPCODE_IDX: [(usize, usize); NUM_OPCODES] = [
     (0, 2),   // Add
     (3, 5),   // Mul
@@ -118,6 +134,12 @@ fn main() {
         .as_array()
         .expect("Expected `functions` to be a JSON array");
 
+    // We reserve a buffer of size `NUM_ARGS` that contains
+    // all the variables used in this function
+    // (Note: this vec is heap-allocated for now, but later on we will convert
+    // it to a slice)
+    let mut all_args: Vec<&str> = Vec::with_capacity(NUM_ARGS);
+
     for func in functions {
         let name = func["name"]
             .as_str()
@@ -126,15 +148,44 @@ fn main() {
         let instrs = func["instrs"]
             .as_array()
             .expect("Expected `instrs` to be a JSON array");
+
+        // TODO: create a vec to store all the `Instr` structs that we create,
+        // then convert this vec to a slice after the for-loop
+
         for instr in instrs {
             println!("instr = {}", instr);
-            let opcode: Opcode = serde_json::from_value(instr["op"].clone())
-                .expect("Invalid opcode");
-            let _opcode_idx = opcode.get_index();
+            if let Some(label) = instr["label"].as_str() {
+                // Instruction is a label, doesn't have an opcode
+                // TODO: figure out how to handle labels
+                println!("Encountered label {}", label);
+                continue;
+            } else {
+                let opcode: Opcode =
+                    serde_json::from_value(instr["op"].clone())
+                        .expect("Invalid opcode");
+                let _opcode_idx = opcode.get_index();
 
-            let 
+                // Obtain the start/end indexes of the args
+                if let Some(args_json_vec) = instr["args"].as_array() {
+                    let args_vec: Vec<&str> = args_json_vec
+                        .iter()
+                        .map(|v| v.as_str().unwrap())
+                        .collect();
+                    let args_slice = args_vec.as_slice();
+                    let start_idx = all_args.len();
+                    all_args.extend_from_slice(args_slice);
+                    let end_idx = all_args.len() - 1;
+                    let _args_idxes = Some((start_idx, end_idx));
+                }
+
+                // TODO: populate the `Instr` struct once we've also fetched
+                // dest, ty, labels
+            }
         }
     }
+
+    // Convert the args vec into a slice
+    let _args_slice: &[&str] = all_args.as_slice();
 }
 
 #[cfg(test)]
@@ -166,7 +217,7 @@ mod tests {
         for opcode in Opcode::iter() {
             let idx = opcode.get_index();
             let (start_idx, end_idx) = OPCODE_IDX[idx];
-            let op_str = &OPCODES[start_idx..=end_idx];
+            let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
             assert_eq!(opcode.as_str(), op_str);
         }
     }
