@@ -13,17 +13,18 @@ use strum_macros::EnumIter;
 struct Instr {
     op: usize,
     dest: Option<usize>,
-    ty: Option<usize>,
+    ty: Option<Type>,
     args: Option<(usize, usize)>,
     labels: Option<(usize, usize)>,
-    value: Option<usize>,
+    value: Option<Value>,
 }
 
 /// Primitive types in core Bril are either `int` or `bool`
-#[derive(Debug, PartialEq, Clone)]
-enum Ty {
-    TyInt = 0,
-    TyBool = 1,
+#[derive(Debug, PartialEq, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum Type {
+    Int = 0,
+    Bool = 1,
 }
 
 /// Bril values are either 64-bit integers or bools.   
@@ -92,6 +93,8 @@ impl Opcode {
         OPCODE_IDX[opcode as usize]
     }
 
+    /// Extracts the index of the opcode's `(start_idx, end_idx)` pair
+    /// in `OPCODE_IDX`
     pub fn get_index(&self) -> usize {
         let (start_idx, end_idx) = self.get_buffer_start_end_indexes();
         OPCODE_IDX
@@ -226,7 +229,14 @@ fn main() {
                     println!("dest = {:?}", dest_copy);
                 }
 
-                let ty_idx = None;
+                // Populate the `ty` field of the `Instr` struct
+                let mut ty = None;
+                if let Ok(instr_ty) =
+                    serde_json::from_value::<Type>(instr["type"].clone())
+                {
+                    ty = Some(instr_ty);
+                }
+
                 let labels_idx = None;
                 let value_idx = None;
 
@@ -234,7 +244,7 @@ fn main() {
                     op: opcode_idx,
                     args: arg_idxes,
                     dest: dest_idx,
-                    ty: ty_idx,
+                    ty,
                     labels: labels_idx,
                     value: value_idx,
                 };
