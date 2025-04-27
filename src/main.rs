@@ -19,6 +19,22 @@ struct Instr {
     value: Option<usize>,
 }
 
+/// Primitive types in core Bril are either `int` or `bool`
+#[derive(Debug, PartialEq, Clone)]
+enum Ty {
+    TyInt = 0,
+    TyBool = 1,
+}
+
+/// Bril values are either 64-bit integers or bools.   
+/// Note: We call this enum `BrilValue` to avoid namespace clashes
+/// with `serde_json::Value`
+#[derive(Debug, PartialEq, Clone)]
+enum BrilValue {
+    IntValue(i64),
+    BoolValue(bool),
+}
+
 impl Instr {
     /// Creates a new `Instr` struct with the `op` field set to `opcode_idx`,
     /// and all other fields initialized to `None`
@@ -106,6 +122,8 @@ const NUM_OPCODES: usize = 20;
 /// variables in a Bril function)
 const NUM_ARGS: usize = 64;
 
+const NUM_DESTS: usize = 128;
+
 /// Each pair contains the `(start idx, end idx)` of the opcode in `OPCODES`.     
 /// Note that both start and indexes are inclusive.
 const OPCODE_IDX: [(usize, usize); NUM_OPCODES] = [
@@ -156,6 +174,8 @@ fn main() {
     // it to a slice)
     let mut all_args: Vec<&str> = Vec::with_capacity(NUM_ARGS);
 
+    let mut all_dests: Vec<&str> = Vec::with_capacity(NUM_DESTS);
+
     for func in functions {
         let name = func["name"]
             .as_str()
@@ -181,12 +201,9 @@ fn main() {
                         .expect("Invalid opcode");
                 let opcode_idx = opcode.get_index();
 
-                // Obtain the start/end indexes of the args
+                // Obtain the start/end indexes of the args,
+                // (used to populate the `args` field of the `Instr` struct)
                 let mut arg_idxes = None;
-                let dest = None;
-                let ty = None;
-                let labels = None;
-                let value = None;
                 if let Some(args_json_vec) = instr["args"].as_array() {
                     let args_vec: Vec<&str> = args_json_vec
                         .iter()
@@ -201,15 +218,24 @@ fn main() {
                     println!("args = {:?}", args_copy);
                 }
 
-                // TODO: populate the `Instr` struct once we've also fetched
-                // dest, ty, labels
+                // Populate the `dest` field of the `Instr` struct
+                let mut dest_idx = None;
+                if let Some(dest) = instr["dest"].as_str() {
+                    dest_idx = Some(all_dests.len() as usize);
+                    all_dests.push(dest);
+                }
+
+                let ty_idx = None;
+                let labels_idx = None;
+                let value_idx = None;
+
                 let _instr = Instr {
                     op: opcode_idx,
                     args: arg_idxes,
-                    dest,
-                    ty,
-                    labels,
-                    value,
+                    dest: dest_idx,
+                    ty: ty_idx,
+                    labels: labels_idx,
+                    value: value_idx,
                 };
             }
         }
