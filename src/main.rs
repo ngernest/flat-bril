@@ -23,11 +23,11 @@ struct Instr {
 }
 
 /// Primitive types in core Bril are either `int` or `bool`
-#[derive(Debug, PartialEq, Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 enum Type {
-    Int = 0,
-    Bool = 1,
+    Int,
+    Bool,
 }
 
 impl Type {
@@ -293,8 +293,8 @@ mod tests {
     #[test]
     fn test_opcode_serialization_correct() {
         for opcode in Opcode::iter() {
-            let json: Value = serde_json::json!(opcode);
-            let deserialized_op: Value =
+            let json: serde_json::Value = serde_json::json!(opcode);
+            let deserialized_op: serde_json::Value =
                 serde_json::from_value(json).expect("trouble deserializing");
             let serde_op_str = deserialized_op.as_str().unwrap();
             let op_str = opcode.as_str();
