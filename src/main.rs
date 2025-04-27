@@ -168,15 +168,14 @@ fn main() {
         .as_array()
         .expect("Expected `functions` to be a JSON array");
 
-    // We reserve a buffer of size `NUM_ARGS` that contains
-    // all the variables used in this function
-    // (Note: this vec is heap-allocated for now, but later on we will convert
-    // it to a slice)
-    let mut all_args: Vec<&str> = Vec::with_capacity(NUM_ARGS);
-
-    let mut all_dests: Vec<&str> = Vec::with_capacity(NUM_DESTS);
-
     for func in functions {
+        // We reserve a buffer of size `NUM_ARGS` that contains
+        // all the variables used in this function
+        // (Note: this vec is heap-allocated for now, but later on we will convert
+        // it to a slice)
+        let mut all_args: Vec<&str> = Vec::with_capacity(NUM_ARGS);
+        let mut all_dests: Vec<&str> = Vec::with_capacity(NUM_DESTS);
+
         let name = func["name"]
             .as_str()
             .expect("Expected `name` to be a string");
@@ -223,6 +222,8 @@ fn main() {
                 if let Some(dest) = instr["dest"].as_str() {
                     dest_idx = Some(all_dests.len() as usize);
                     all_dests.push(dest);
+                    let dest_copy = all_dests.as_slice()[dest_idx.unwrap()];
+                    println!("dest = {:?}", dest_copy);
                 }
 
                 let ty_idx = None;
@@ -242,6 +243,8 @@ fn main() {
         // Convert the args vec into a slice
         let args_slice: &[&str] = all_args.as_slice();
         println!("args_slice = {:?}", args_slice);
+        let dest_slice: &[&str] = &all_dests.as_slice();
+        println!("dest_slice = {:?}", dest_slice);
     }
 }
 
