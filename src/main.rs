@@ -19,6 +19,22 @@ struct Instr {
     value: Option<usize>,
 }
 
+impl Instr {
+    /// Creates a new `Instr` struct with the `op` field set to `opcode_idx`,
+    /// and all other fields initialized to `None`
+    #[allow(dead_code)]
+    pub fn new(opcode_idx: usize) -> Self {
+        Instr {
+            op: opcode_idx,
+            dest: None,
+            ty: None,
+            args: None,
+            labels: None,
+            value: None,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, EnumIter)]
 #[serde(rename_all = "lowercase")]
 pub enum Opcode {
@@ -163,10 +179,14 @@ fn main() {
                 let opcode: Opcode =
                     serde_json::from_value(instr["op"].clone())
                         .expect("Invalid opcode");
-                let _opcode_idx = opcode.get_index();
+                let opcode_idx = opcode.get_index();
 
                 // Obtain the start/end indexes of the args
-                // TODO: test that this actually works
+                let mut arg_idxes = None;
+                let dest = None;
+                let ty = None;
+                let labels = None;
+                let value = None;
                 if let Some(args_json_vec) = instr["args"].as_array() {
                     let args_vec: Vec<&str> = args_json_vec
                         .iter()
@@ -176,13 +196,21 @@ fn main() {
                     let start_idx = all_args.len();
                     all_args.extend_from_slice(args_slice);
                     let end_idx = all_args.len() - 1;
-                    let _args_idxes = Some((start_idx, end_idx));
+                    arg_idxes = Some((start_idx, end_idx));
                     let args_copy = &all_args.as_slice()[start_idx..=end_idx];
                     println!("args = {:?}", args_copy);
                 }
 
                 // TODO: populate the `Instr` struct once we've also fetched
                 // dest, ty, labels
+                let _instr = Instr {
+                    op: opcode_idx,
+                    args: arg_idxes,
+                    dest,
+                    ty,
+                    labels,
+                    value,
+                };
             }
         }
         // Convert the args vec into a slice
