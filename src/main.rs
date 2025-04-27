@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::{io, io::Read};
 
 use strum_macros::EnumIter;
@@ -7,16 +6,20 @@ use strum_macros::EnumIter;
 #[allow(dead_code, unused_variables)]
 #[derive(Debug, PartialEq, Clone)]
 /// Flattened type for Bril instructions.   
-/// - `op` stores an index `i` into `OPCODE_IDX`, where
-/// `OPCODE_IDX[i] = (start, end)`, such that `OPCODE_BUFFER[start..=end]`
-/// is the serialized version of the opcode
+/// - The `op` field stores an index `i` into `OPCODE_IDX`, where
+///   `OPCODE_IDX[i] = (start, end)`, such that `OPCODE_BUFFER[start..=end]`
+///   is the serialized version of the opcode
+/// - Similarly, `dest` field is an index into the `all_dests` array
+/// - We can store the actual `type` and `value` inline in the `Instr` struct
+///   (since they're either an int or a bool,
+///   i.e. they don't need to be heap-allocated)
 struct Instr {
     op: usize,
     dest: Option<usize>,
     ty: Option<Type>,
     args: Option<(usize, usize)>,
     labels: Option<(usize, usize)>,
-    value: Option<Value>,
+    value: Option<BrilValue>,
 }
 
 /// Primitive types in core Bril are either `int` or `bool`
@@ -27,13 +30,25 @@ enum Type {
     Bool = 1,
 }
 
+impl Type {
+    /// Converts a `Type` to its string representation
+    #[allow(dead_code)]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Type::Int => "int",
+            Type::Bool => "bool",
+        }
+    }
+}
+
 /// Bril values are either 64-bit integers or bools.   
 /// Note: We call this enum `BrilValue` to avoid namespace clashes
 /// with `serde_json::Value`
 #[derive(Debug, PartialEq, Clone)]
+#[allow(dead_code)]
 enum BrilValue {
-    IntValue(i64),
-    BoolValue(bool),
+    IntVal(i64),
+    BoolVal(bool),
 }
 
 impl Instr {
@@ -165,7 +180,7 @@ fn main() {
         .expect("Unable to read from stdin");
 
     // Parse the JSON into serde_json's `Value` datatype
-    let json: Value =
+    let json: serde_json::Value =
         serde_json::from_str(&buffer).expect("Unable to parse malformed JSON");
     let functions = json["functions"]
         .as_array()
@@ -237,8 +252,17 @@ fn main() {
                     ty = Some(instr_ty);
                 }
 
+                // Populate the `value` field of the `Instr` struct
+                let mut value = None;
+                if let Some(int_value) = instr["value"].as_i64() {
+                    value = Some(BrilValue::IntVal(int_value));
+                } else if let Some(b) = instr["value"].as_bool() {
+                    value = Some(BrilValue::BoolVal(b));
+                }
+
+                // TODO: populate the `labels` field of `Instr`
+                // (need to create global `labels` array beforehand)
                 let labels_idx = None;
-                let value_idx = None;
 
                 let _instr = Instr {
                     op: opcode_idx,
@@ -246,7 +270,7 @@ fn main() {
                     dest: dest_idx,
                     ty,
                     labels: labels_idx,
-                    value: value_idx,
+                    value,
                 };
             }
         }
