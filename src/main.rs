@@ -153,7 +153,7 @@ fn main() {
         // then convert this vec to a slice after the for-loop
 
         for instr in instrs {
-            println!("instr = {}", instr);
+            // println!("instr = {}", instr);
             if let Some(label) = instr["label"].as_str() {
                 // Instruction is a label, doesn't have an opcode
                 // TODO: figure out how to handle labels
@@ -177,16 +177,18 @@ fn main() {
                     all_args.extend_from_slice(args_slice);
                     let end_idx = all_args.len() - 1;
                     let _args_idxes = Some((start_idx, end_idx));
+                    let args_copy = &all_args.as_slice()[start_idx..=end_idx];
+                    println!("args = {:?}", args_copy);
                 }
 
                 // TODO: populate the `Instr` struct once we've also fetched
                 // dest, ty, labels
             }
         }
+        // Convert the args vec into a slice
+        let args_slice: &[&str] = all_args.as_slice();
+        println!("args_slice = {:?}", args_slice);
     }
-
-    // Convert the args vec into a slice
-    let _args_slice: &[&str] = all_args.as_slice();
 }
 
 #[cfg(test)]

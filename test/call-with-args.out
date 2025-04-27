@@ -1,0 +1,10 @@
+main
+args = ["x", "y"]
+args = ["y"]
+args = ["z"]
+args_slice = ["x", "y", "y", "z"]
+add2
+args = ["x", "y"]
+args = ["w"]
+args = ["w"]
+args_slice = ["x", "y", "y", "z", "x", "y", "w", "w"]

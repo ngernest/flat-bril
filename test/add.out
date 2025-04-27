@@ -1,0 +1,4 @@
+main
+args = ["v0", "v1"]
+args = ["v2"]
+args_slice = ["v0", "v1", "v2"]
