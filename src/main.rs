@@ -1,7 +1,12 @@
 use serde::{Deserialize, Serialize};
-use std::{io, io::Read};
+use std::fmt;
+use std::io::{self, Read};
 
 use strum_macros::EnumIter;
+
+/* -------------------------------------------------------------------------- */
+/*                                    Types                                   */
+/* -------------------------------------------------------------------------- */
 
 #[allow(dead_code, unused_variables)]
 #[derive(Debug, PartialEq, Clone)]
@@ -28,17 +33,6 @@ struct Instr {
 enum Type {
     Int,
     Bool,
-}
-
-impl Type {
-    /// Converts a `Type` to its string representation
-    #[allow(dead_code)]
-    pub fn as_str(&self) -> &str {
-        match self {
-            Type::Int => "int",
-            Type::Bool => "bool",
-        }
-    }
 }
 
 /// Bril values are either 64-bit integers or bools.   
@@ -126,6 +120,10 @@ impl Opcode {
     }
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                  Constants                                 */
+/* -------------------------------------------------------------------------- */
+
 /// A string literal storing all distinct opcodes in core Bril
 #[allow(dead_code)]
 const OPCODE_BUFFER: &str =
@@ -169,6 +167,10 @@ const OPCODE_IDX: [(usize, usize); NUM_OPCODES] = [
     (49, 51), // Nop
     (52, 56), // Const
 ];
+
+/* -------------------------------------------------------------------------- */
+/*                                 Actual code                                */
+/* -------------------------------------------------------------------------- */
 
 fn main() {
     // Enable stack backtrace for debugging
@@ -236,8 +238,8 @@ fn main() {
                     all_args.extend_from_slice(args_slice);
                     let end_idx = all_args.len() - 1;
                     arg_idxes = Some((start_idx, end_idx));
-                    let args_copy = &all_args.as_slice()[start_idx..=end_idx];
-                    println!("args = {:?}", args_copy);
+                    // let args_copy = &all_args.as_slice()[start_idx..=end_idx];
+                    // println!("args = {:?}", args_copy);
                 }
 
                 // Populate the `dest` field of the `Instr` struct
@@ -245,8 +247,8 @@ fn main() {
                 if let Some(dest) = instr["dest"].as_str() {
                     dest_idx = Some(all_dests.len() as usize);
                     all_dests.push(dest);
-                    let dest_copy = all_dests.as_slice()[dest_idx.unwrap()];
-                    println!("dest = {:?}", dest_copy);
+                    // let dest_copy = all_dests.as_slice()[dest_idx.unwrap()];
+                    // println!("dest = {:?}", dest_copy);
                 }
 
                 // Populate the `ty` field of the `Instr` struct
@@ -277,9 +279,9 @@ fn main() {
                     all_labels.extend_from_slice(labels_slice);
                     let end_idx = all_labels.len() - 1;
                     labels_idxes = Some((start_idx, end_idx));
-                    let labels_copy =
-                        &all_labels.as_slice()[start_idx..=end_idx];
-                    println!("labels = {:?}", labels_copy);
+                    // let labels_copy =
+                    //     &all_labels.as_slice()[start_idx..=end_idx];
+                    // println!("labels = {:?}", labels_copy);
                 }
 
                 let instr = Instr {
@@ -298,10 +300,80 @@ fn main() {
         let _dest_slice: &[&str] = &all_dests.as_slice();
         let _labels_slice: &[&str] = &all_labels.as_slice();
 
-        let _all_instrs_slice = &all_instrs.as_slice();
+        let all_instrs_slice = &all_instrs.as_slice();
+        for instr in *all_instrs_slice {
+            println!("{}", instr);
+        }
     }
 }
 
+/* -------------------------------------------------------------------------- */
+/*                               Pretty-Printing                              */
+/* -------------------------------------------------------------------------- */
+
+impl fmt::Display for Instr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Look up the actual Opcode corresponding to the op index in the struct
+        let (start_idx, end_idx) = OPCODE_IDX[self.op];
+        let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
+        write!(f, "op: {:5}\t", op_str)?;
+        if let Some(dest) = &self.dest {
+            // TODO: use the index to look up into the dest array and display
+            // the actual dest instead
+            write!(f, "dest: {:2}\t", dest)?;
+        }
+        if let Some(ty) = &self.ty {
+            write!(f, "type: {:5}\t", ty)?;
+        }
+        if let Some(value) = &self.value {
+            write!(f, "value: {:5}\t", value)?;
+        }
+        if let Some(args) = &self.args {
+            // TODO: use the index to look up into the args array and display
+            // the actual dest instead
+            write!(f, "args: {:?}\t", args)?;
+        }
+        if let Some(labels) = &self.labels {
+            // TODO: use the index to look up into the displays array and display
+            // the actual dest instead
+            write!(f, "labels: {:?}", labels)?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Type::Int => write!(f, "int"),
+            Type::Bool => write!(f, "bool"),
+        }
+    }
+}
+
+impl Type {
+    /// Converts a `Type` to its string representation
+    #[allow(dead_code)]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Type::Int => "int",
+            Type::Bool => "bool",
+        }
+    }
+}
+
+impl fmt::Display for BrilValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BrilValue::IntVal(n) => write!(f, "{}", n),
+            BrilValue::BoolVal(b) => write!(f, "{}", b),
+        }
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                    Tests                                   */
+/* -------------------------------------------------------------------------- */
 #[cfg(test)]
 mod tests {
     use super::*;
