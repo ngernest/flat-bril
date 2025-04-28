@@ -112,7 +112,8 @@ impl Opcode {
             .expect("Opcode not present in `OPCODE_IDX`")
     }
 
-    /// Converts an `Opcode` to a `&str`
+    /// Converts an `Opcode` to a `&str` using the `(start_idx, end_idx)`
+    /// obtained from `Instr::get_buffer_start_end_indexes`.
     #[allow(dead_code)]
     fn as_str(&self) -> &str {
         let (start_idx, end_idx) = self.get_buffer_start_end_indexes();
@@ -238,8 +239,6 @@ fn main() {
                     all_args.extend_from_slice(args_slice);
                     let end_idx = all_args.len() - 1;
                     arg_idxes = Some((start_idx, end_idx));
-                    // let args_copy = &all_args.as_slice()[start_idx..=end_idx];
-                    // println!("args = {:?}", args_copy);
                 }
 
                 // Populate the `dest` field of the `Instr` struct
@@ -247,8 +246,6 @@ fn main() {
                 if let Some(dest) = instr["dest"].as_str() {
                     dest_idx = Some(all_dests.len() as usize);
                     all_dests.push(dest);
-                    // let dest_copy = all_dests.as_slice()[dest_idx.unwrap()];
-                    // println!("dest = {:?}", dest_copy);
                 }
 
                 // Populate the `ty` field of the `Instr` struct
@@ -279,9 +276,6 @@ fn main() {
                     all_labels.extend_from_slice(labels_slice);
                     let end_idx = all_labels.len() - 1;
                     labels_idxes = Some((start_idx, end_idx));
-                    // let labels_copy =
-                    //     &all_labels.as_slice()[start_idx..=end_idx];
-                    // println!("labels = {:?}", labels_copy);
                 }
 
                 let instr = Instr {
@@ -296,9 +290,12 @@ fn main() {
             }
         }
         // Convert the args/dest/labels/instrs vecs into slices
-        let _args_slice: &[&str] = all_args.as_slice();
-        let _dest_slice: &[&str] = &all_dests.as_slice();
-        let _labels_slice: &[&str] = &all_labels.as_slice();
+        let args_slice: &[&str] = all_args.as_slice();
+        let dest_slice: &[&str] = &all_dests.as_slice();
+        let labels_slice: &[&str] = &all_labels.as_slice();
+        println!("args = {:?}", args_slice);
+        println!("dest = {:?}", dest_slice);
+        println!("labels = {:?}", labels_slice);
 
         let all_instrs_slice = &all_instrs.as_slice();
         for instr in *all_instrs_slice {
@@ -386,7 +383,7 @@ mod tests {
     /// and checks that the corresponding substring when we index into `OPCODES`
     /// is the same)
     #[test]
-    fn test_opcode_serialization_correct() {
+    fn test_opcode_serialization_round_trip() {
         for opcode in Opcode::iter() {
             let json: serde_json::Value = serde_json::json!(opcode);
             let deserialized_op: serde_json::Value =
