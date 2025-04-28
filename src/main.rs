@@ -140,9 +140,10 @@ const NUM_OPCODES: usize = 20;
 /// variables in a Bril function)
 const NUM_ARGS: usize = 64;
 
-/// SImilarly, we assume that Bril programs contain at most 128 dests/labels
+/// SImilarly, we assume that Bril programs contain at most 128 dests/labels/instrs
 const NUM_DESTS: usize = 128;
 const NUM_LABELS: usize = 128;
+const NUM_INSTRS: usize = 128;
 
 /// Each pair contains the `(start idx, end idx)` of the opcode in `OPCODES`.     
 /// Note that both start and indexes are inclusive.
@@ -206,11 +207,11 @@ fn main() {
             .as_array()
             .expect("Expected `instrs` to be a JSON array");
 
-        // TODO: create a vec to store all the `Instr` structs that we create,
-        // then convert this vec to a slice after the for-loop
+        // `all_instrs` is a temporary vec that stores all the `Instr` structs
+        // that we create (we'll convert this vec to a slice after the loop below)
+        let mut all_instrs: Vec<Instr> = Vec::with_capacity(NUM_INSTRS);
 
         for instr in instrs {
-            // println!("instr = {}", instr);
             if let Some(label) = instr["label"].as_str() {
                 // Instruction is a label, doesn't have an opcode
                 // TODO: figure out how to handle labels
@@ -281,7 +282,7 @@ fn main() {
                     println!("labels = {:?}", labels_copy);
                 }
 
-                let _instr = Instr {
+                let instr = Instr {
                     op: opcode_idx,
                     args: arg_idxes,
                     dest: dest_idx,
@@ -289,13 +290,15 @@ fn main() {
                     labels: labels_idxes,
                     value,
                 };
+                all_instrs.push(instr);
             }
         }
-        // Convert the args vec into a slice
-        let args_slice: &[&str] = all_args.as_slice();
-        println!("args_slice = {:?}", args_slice);
-        let dest_slice: &[&str] = &all_dests.as_slice();
-        println!("dest_slice = {:?}", dest_slice);
+        // Convert the args/dest/labels/instrs vecs into slices
+        let _args_slice: &[&str] = all_args.as_slice();
+        let _dest_slice: &[&str] = &all_dests.as_slice();
+        let _labels_slice: &[&str] = &all_labels.as_slice();
+
+        let _all_instrs_slice = &all_instrs.as_slice();
     }
 }
 
