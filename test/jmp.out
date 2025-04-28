@@ -1,0 +1,8 @@
+main
+dest = "v"
+labels = ["somewhere"]
+dest = "v"
+Encountered label somewhere
+args = ["v"]
+args_slice = ["v"]
+dest_slice = ["v", "v"]

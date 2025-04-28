@@ -140,7 +140,9 @@ const NUM_OPCODES: usize = 20;
 /// variables in a Bril function)
 const NUM_ARGS: usize = 64;
 
+/// SImilarly, we assume that Bril programs contain at most 128 dests/labels
 const NUM_DESTS: usize = 128;
+const NUM_LABELS: usize = 128;
 
 /// Each pair contains the `(start idx, end idx)` of the opcode in `OPCODES`.     
 /// Note that both start and indexes are inclusive.
@@ -191,8 +193,10 @@ fn main() {
         // all the variables used in this function
         // (Note: this vec is heap-allocated for now, but later on we will convert
         // it to a slice)
+        // We also do the same for dests and labels
         let mut all_args: Vec<&str> = Vec::with_capacity(NUM_ARGS);
         let mut all_dests: Vec<&str> = Vec::with_capacity(NUM_DESTS);
+        let mut all_labels: Vec<&str> = Vec::with_capacity(NUM_LABELS);
 
         let name = func["name"]
             .as_str()
@@ -260,16 +264,29 @@ fn main() {
                     value = Some(BrilValue::BoolVal(b));
                 }
 
-                // TODO: populate the `labels` field of `Instr`
-                // (need to create global `labels` array beforehand)
-                let labels_idx = None;
+                // Populate the `labels` field of the `Instr` struct
+                let mut labels_idxes = None;
+                if let Some(labels_json_vec) = instr["labels"].as_array() {
+                    let labels_vec: Vec<&str> = labels_json_vec
+                        .iter()
+                        .map(|v| v.as_str().unwrap())
+                        .collect();
+                    let labels_slice = labels_vec.as_slice();
+                    let start_idx = all_labels.len();
+                    all_labels.extend_from_slice(labels_slice);
+                    let end_idx = all_labels.len() - 1;
+                    labels_idxes = Some((start_idx, end_idx));
+                    let labels_copy =
+                        &all_labels.as_slice()[start_idx..=end_idx];
+                    println!("labels = {:?}", labels_copy);
+                }
 
                 let _instr = Instr {
                     op: opcode_idx,
                     args: arg_idxes,
                     dest: dest_idx,
                     ty,
-                    labels: labels_idx,
+                    labels: labels_idxes,
                     value,
                 };
             }
@@ -290,6 +307,9 @@ mod tests {
     use strum::IntoEnumIterator;
 
     /// Test that opcode serialization is correct
+    /// (what this test does is it converts the opcode to a string using `serde`,
+    /// and checks that the corresponding substring when we index into `OPCODES`
+    /// is the same)
     #[test]
     fn test_opcode_serialization_correct() {
         for opcode in Opcode::iter() {
@@ -303,9 +323,6 @@ mod tests {
     }
 
     /// Checks that for all opcodes, their start/end indexes in `OPCODE_IDX` are correct
-    /// (what this test does is it converts the opcode to a string using `serde`,
-    /// and checks that the corresponding substring when we index into `OPCODES`
-    /// is the same)
     #[test]
     fn test_opcode_indexes_correct() {
         for opcode in Opcode::iter() {
