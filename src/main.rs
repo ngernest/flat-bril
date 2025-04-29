@@ -45,11 +45,11 @@ enum BrilValue {
     BoolVal(bool),
 }
 
+#[allow(dead_code)]
 impl Instr {
     /// Creates a new `Instr` struct with the `op` field set to `opcode_idx`,
     /// and all other fields initialized to `None`
-    #[allow(dead_code)]
-    pub fn new(opcode_idx: usize) -> Self {
+    pub fn init(opcode_idx: usize) -> Self {
         Instr {
             op: opcode_idx,
             dest: None,
@@ -57,6 +57,26 @@ impl Instr {
             args: None,
             labels: None,
             value: None,
+        }
+    }
+
+    /// Creates a new `Instr` struct with all fields populated according
+    /// to the arguments supplied to this function
+    pub fn new(
+        op: usize,
+        dest: Option<usize>,
+        ty: Option<Type>,
+        args: Option<(usize, usize)>,
+        labels: Option<(usize, usize)>,
+        value: Option<BrilValue>,
+    ) -> Self {
+        Instr {
+            op,
+            dest,
+            ty,
+            args,
+            labels,
+            value,
         }
     }
 }
@@ -449,7 +469,14 @@ mod tests {
         let file = File::open(&path).expect("Unable to open file");
         let reader = BufReader::new(file);
 
-        let json_value: serde_json::Value =
-            serde_json::from_reader(reader).expect("Unable to read JSON");
+        let json: serde_json::Value =
+            serde_json::from_reader(reader).expect("Unable to parse JSON");
+        let functions = json["functions"]
+            .as_array()
+            .expect("Expected `functions` to be a JSON array");
+        let actual_instrs: Vec<Instr> = create_instrs(functions[0].clone());
+
+        // TODO: figure out how to create this using our `Instr` struct
+        let expected_instrs = vec![];
     }
 }
