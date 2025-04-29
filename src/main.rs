@@ -299,7 +299,7 @@ fn main() {
 
         let all_instrs_slice = &all_instrs.as_slice();
         for instr in *all_instrs_slice {
-            println!("{}", instr);
+            print_instr(instr, args_slice, dest_slice, labels_slice);
         }
     }
 }
@@ -307,6 +307,41 @@ fn main() {
 /* -------------------------------------------------------------------------- */
 /*                               Pretty-Printing                              */
 /* -------------------------------------------------------------------------- */
+
+/// Pretty-prints an `Instr`, using the indexes in the `Instr` struct to fetch
+/// the appropriate elements in the other argument slices
+fn print_instr(
+    instr: &Instr,
+    args_slice: &[&str],
+    dest_slice: &[&str],
+    labels_slice: &[&str],
+) {
+    // Look up the actual Opcode corresponding to the op index in the struct
+    let (start_idx, end_idx) = OPCODE_IDX[instr.op];
+    let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
+    print!("op: {:5}\t", op_str);
+
+    if let Some(dest_idx) = &instr.dest {
+        // TODO: use the index to look up into the dest array and display
+        // the actual dest instead
+        print!("dest: {:2}\t", dest_slice[*dest_idx]);
+    }
+
+    if let Some(ty) = &instr.ty {
+        print!("type: {:5}\t", ty);
+    }
+    if let Some(value) = &instr.value {
+        print!("value: {:5}\t", value);
+    }
+
+    if let Some((args_start, args_end)) = &instr.args {
+        print!("args: {:?}\t", &args_slice[*args_start..=*args_end]);
+    }
+    if let Some((labels_start, labels_end)) = &instr.labels {
+        print!("labels: {:?}", &labels_slice[*labels_start..=*labels_end]);
+    }
+    println!("");
+}
 
 impl fmt::Display for Instr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
