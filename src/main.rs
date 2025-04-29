@@ -197,6 +197,9 @@ const OPCODE_IDX: [(usize, usize); NUM_OPCODES] = [
 /*                                 Actual code                                */
 /* -------------------------------------------------------------------------- */
 
+/// Takes in a JSON function representing one single Bril function,
+/// and returns a vector containing the flattened instructions in the function
+/// (in the same order)
 fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
     // We reserve a buffer of size `NUM_ARGS` that contains
     // all the variables used in this function
@@ -347,8 +350,6 @@ fn print_instr(
     print!("op: {:5}\t", op_str);
 
     if let Some(dest_idx) = &instr.dest {
-        // TODO: use the index to look up into the dest array and display
-        // the actual dest instead
         print!("dest: {:2}\t", dest_slice[*dest_idx]);
     }
 
@@ -368,6 +369,10 @@ fn print_instr(
     println!("");
 }
 
+/// Note: prefer the `print_instr` function above over the implementation of
+/// the `Display` trait for `Instr`, since the former actually prints out
+/// what the concrete values are for each field in the `Instr`
+/// (the `Display` trait just prints out the indexes, not the actual values)
 impl fmt::Display for Instr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Look up the actual Opcode corresponding to the op index in the struct
@@ -375,8 +380,6 @@ impl fmt::Display for Instr {
         let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
         write!(f, "op: {:5}\t", op_str)?;
         if let Some(dest) = &self.dest {
-            // TODO: use the index to look up into the dest array and display
-            // the actual dest instead
             write!(f, "dest: {:2}\t", dest)?;
         }
         if let Some(ty) = &self.ty {
@@ -386,13 +389,9 @@ impl fmt::Display for Instr {
             write!(f, "value: {:5}\t", value)?;
         }
         if let Some(args) = &self.args {
-            // TODO: use the index to look up into the args array and display
-            // the actual dest instead
             write!(f, "args: {:?}\t", args)?;
         }
         if let Some(labels) = &self.labels {
-            // TODO: use the index to look up into the displays array and display
-            // the actual dest instead
             write!(f, "labels: {:?}", labels)?;
         }
         Ok(())
