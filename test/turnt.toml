@@ -1,1 +1,2 @@
+[envs.print]
 command = "bril2json < {filename} | cargo run"

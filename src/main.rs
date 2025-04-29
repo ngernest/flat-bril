@@ -276,6 +276,9 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
                 labels_idxes = Some((start_idx, end_idx));
             }
 
+            // TODO: handle `func` field in `Instr` struct (for effect operations)
+            // (Test with `call.bril` and `call-with-args.bril`)
+
             let instr = Instr {
                 op: opcode_idx,
                 args: arg_idxes,
@@ -291,9 +294,6 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
     let args_slice: &[&str] = all_args.as_slice();
     let dest_slice: &[&str] = &all_dests.as_slice();
     let labels_slice: &[&str] = &all_labels.as_slice();
-    println!("args = {:?}", args_slice);
-    println!("dest = {:?}", dest_slice);
-    println!("labels = {:?}", labels_slice);
 
     for instr in all_instrs.as_slice() {
         print_instr(&instr, args_slice, dest_slice, labels_slice);
@@ -463,20 +463,19 @@ mod tests {
         }
     }
 
-    #[test]
-    fn add_bril() {
-        let path = Path::new("test/add.json");
-        let file = File::open(&path).expect("Unable to open file");
-        let reader = BufReader::new(file);
+    // #[test]
+    // fn add_bril() {
+    //     let path = Path::new("test/add.json");
+    //     let file = File::open(&path).expect("Unable to open file");
+    //     let reader = BufReader::new(file);
 
-        let json: serde_json::Value =
-            serde_json::from_reader(reader).expect("Unable to parse JSON");
-        let functions = json["functions"]
-            .as_array()
-            .expect("Expected `functions` to be a JSON array");
-        let actual_instrs: Vec<Instr> = create_instrs(functions[0].clone());
+    //     let json: serde_json::Value =
+    //         serde_json::from_reader(reader).expect("Unable to parse JSON");
+    //     let functions = json["functions"]
+    //         .as_array()
+    //         .expect("Expected `functions` to be a JSON array");
+    //     let actual_instrs: Vec<Instr> = create_instrs(functions[0].clone());
 
-        // TODO: figure out how to create this using our `Instr` struct
-        let expected_instrs = vec![];
-    }
+    //     // TODO: figure out how to create this using our `Instr` struct
+    // }
 }

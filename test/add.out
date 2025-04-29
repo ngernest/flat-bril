@@ -1,4 +1,5 @@
 main
-args = ["v0", "v1"]
-args = ["v2"]
-args_slice = ["v0", "v1", "v2"]
+op: const	dest: v0	type: int	value: 1	
+op: const	dest: v1	type: int	value: 2	
+op: add  	dest: v2	type: int	args: ["v0", "v1"]	
+op: print	args: ["v2"]	
