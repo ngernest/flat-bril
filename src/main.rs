@@ -18,6 +18,10 @@ use strum_macros::EnumIter;
 /// - We can store the actual `type` and `value` inline in the `Instr` struct
 ///   (since they're either an int or a bool,
 ///   i.e. they don't need to be heap-allocated)
+/// - `args` and `labels` contain the start and end indices (inclusive)
+///   of the relevant elements in their respective arrays
+///   (Well-formedness condition: we must have end_idx >= start_idx always
+///   for the `args` and `labels` fields)
 struct Instr {
     op: usize,
     dest: Option<usize>,
@@ -463,19 +467,38 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn add_bril() {
-    //     let path = Path::new("test/add.json");
-    //     let file = File::open(&path).expect("Unable to open file");
-    //     let reader = BufReader::new(file);
+    /// Test that all the flattened instructions corresponding to `test/add.bril`
+    /// are well-formed (i.e. for pairs of indices, the end index is always
+    /// >= the start index)
+    #[test]
+    fn test_add_bril_instrs_wf() {
+        let path = Path::new("test/add.json");
+        let file = File::open(&path).expect("Unable to open file");
+        let reader = BufReader::new(file);
 
-    //     let json: serde_json::Value =
-    //         serde_json::from_reader(reader).expect("Unable to parse JSON");
-    //     let functions = json["functions"]
-    //         .as_array()
-    //         .expect("Expected `functions` to be a JSON array");
-    //     let actual_instrs: Vec<Instr> = create_instrs(functions[0].clone());
-
-    //     // TODO: figure out how to create this using our `Instr` struct
-    // }
+        let json: serde_json::Value =
+            serde_json::from_reader(reader).expect("Unable to parse JSON");
+        let functions = json["functions"]
+            .as_array()
+            .expect("Expected `functions` to be a JSON array");
+        let instrs: Vec<Instr> = create_instrs(functions[0].clone());
+        for instr in instrs {
+            if let Some((args_start, args_end)) = instr.args {
+                assert!(
+                    args_end >= args_start,
+                    "{} >= {} is false",
+                    args_end,
+                    args_start
+                );
+            }
+            if let Some((labels_start, labels_end)) = instr.labels {
+                assert!(
+                    labels_end >= labels_start,
+                    "{} >= {} is false",
+                    labels_end,
+                    labels_start
+                );
+            }
+        }
+    }
 }
