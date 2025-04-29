@@ -173,6 +173,114 @@ const OPCODE_IDX: [(usize, usize); NUM_OPCODES] = [
 /*                                 Actual code                                */
 /* -------------------------------------------------------------------------- */
 
+fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
+    // We reserve a buffer of size `NUM_ARGS` that contains
+    // all the variables used in this function
+    // (Note: this vec is heap-allocated for now, but later on we will convert
+    // it to a slice)
+    // We also do the same for dests and labels
+    let mut all_args: Vec<&str> = Vec::with_capacity(NUM_ARGS);
+    let mut all_dests: Vec<&str> = Vec::with_capacity(NUM_DESTS);
+    let mut all_labels: Vec<&str> = Vec::with_capacity(NUM_LABELS);
+
+    let name = func_json["name"]
+        .as_str()
+        .expect("Expected `name` to be a string");
+    println!("{}", name);
+    let instrs = func_json["instrs"]
+        .as_array()
+        .expect("Expected `instrs` to be a JSON array");
+
+    // `all_instrs` is a temporary vec that stores all the `Instr` structs
+    // that we create (we'll convert this vec to a slice after the loop below)
+    let mut all_instrs: Vec<Instr> = Vec::with_capacity(NUM_INSTRS);
+
+    for instr in instrs {
+        if let Some(label) = instr["label"].as_str() {
+            // Instruction is a label, doesn't have an opcode
+            // TODO: figure out how to handle labels
+            println!("Encountered label {}", label);
+            continue;
+        } else {
+            let opcode: Opcode = serde_json::from_value(instr["op"].clone())
+                .expect("Invalid opcode");
+            let opcode_idx = opcode.get_index();
+
+            // Obtain the start/end indexes of the args,
+            // (used to populate the `args` field of the `Instr` struct)
+            let mut arg_idxes = None;
+            if let Some(args_json_vec) = instr["args"].as_array() {
+                let args_vec: Vec<&str> =
+                    args_json_vec.iter().map(|v| v.as_str().unwrap()).collect();
+                let args_slice = args_vec.as_slice();
+                let start_idx = all_args.len();
+                all_args.extend_from_slice(args_slice);
+                let end_idx = all_args.len() - 1;
+                arg_idxes = Some((start_idx, end_idx));
+            }
+
+            // Populate the `dest` field of the `Instr` struct
+            let mut dest_idx = None;
+            if let Some(dest) = instr["dest"].as_str() {
+                dest_idx = Some(all_dests.len() as usize);
+                all_dests.push(dest);
+            }
+
+            // Populate the `ty` field of the `Instr` struct
+            let mut ty = None;
+            if let Ok(instr_ty) =
+                serde_json::from_value::<Type>(instr["type"].clone())
+            {
+                ty = Some(instr_ty);
+            }
+
+            // Populate the `value` field of the `Instr` struct
+            let mut value = None;
+            if let Some(int_value) = instr["value"].as_i64() {
+                value = Some(BrilValue::IntVal(int_value));
+            } else if let Some(b) = instr["value"].as_bool() {
+                value = Some(BrilValue::BoolVal(b));
+            }
+
+            // Populate the `labels` field of the `Instr` struct
+            let mut labels_idxes = None;
+            if let Some(labels_json_vec) = instr["labels"].as_array() {
+                let labels_vec: Vec<&str> = labels_json_vec
+                    .iter()
+                    .map(|v| v.as_str().unwrap())
+                    .collect();
+                let labels_slice = labels_vec.as_slice();
+                let start_idx = all_labels.len();
+                all_labels.extend_from_slice(labels_slice);
+                let end_idx = all_labels.len() - 1;
+                labels_idxes = Some((start_idx, end_idx));
+            }
+
+            let instr = Instr {
+                op: opcode_idx,
+                args: arg_idxes,
+                dest: dest_idx,
+                ty,
+                labels: labels_idxes,
+                value,
+            };
+            all_instrs.push(instr);
+        }
+    }
+    // Convert the args/dest/labels/instrs vecs into slices
+    let args_slice: &[&str] = all_args.as_slice();
+    let dest_slice: &[&str] = &all_dests.as_slice();
+    let labels_slice: &[&str] = &all_labels.as_slice();
+    println!("args = {:?}", args_slice);
+    println!("dest = {:?}", dest_slice);
+    println!("labels = {:?}", labels_slice);
+
+    for instr in all_instrs.as_slice() {
+        print_instr(&instr, args_slice, dest_slice, labels_slice);
+    }
+    all_instrs
+}
+
 fn main() {
     // Enable stack backtrace for debugging
     unsafe {
@@ -191,116 +299,9 @@ fn main() {
     let functions = json["functions"]
         .as_array()
         .expect("Expected `functions` to be a JSON array");
-
     for func in functions {
-        // We reserve a buffer of size `NUM_ARGS` that contains
-        // all the variables used in this function
-        // (Note: this vec is heap-allocated for now, but later on we will convert
-        // it to a slice)
-        // We also do the same for dests and labels
-        let mut all_args: Vec<&str> = Vec::with_capacity(NUM_ARGS);
-        let mut all_dests: Vec<&str> = Vec::with_capacity(NUM_DESTS);
-        let mut all_labels: Vec<&str> = Vec::with_capacity(NUM_LABELS);
-
-        let name = func["name"]
-            .as_str()
-            .expect("Expected `name` to be a string");
-        println!("{}", name);
-        let instrs = func["instrs"]
-            .as_array()
-            .expect("Expected `instrs` to be a JSON array");
-
-        // `all_instrs` is a temporary vec that stores all the `Instr` structs
-        // that we create (we'll convert this vec to a slice after the loop below)
-        let mut all_instrs: Vec<Instr> = Vec::with_capacity(NUM_INSTRS);
-
-        for instr in instrs {
-            if let Some(label) = instr["label"].as_str() {
-                // Instruction is a label, doesn't have an opcode
-                // TODO: figure out how to handle labels
-                println!("Encountered label {}", label);
-                continue;
-            } else {
-                let opcode: Opcode =
-                    serde_json::from_value(instr["op"].clone())
-                        .expect("Invalid opcode");
-                let opcode_idx = opcode.get_index();
-
-                // Obtain the start/end indexes of the args,
-                // (used to populate the `args` field of the `Instr` struct)
-                let mut arg_idxes = None;
-                if let Some(args_json_vec) = instr["args"].as_array() {
-                    let args_vec: Vec<&str> = args_json_vec
-                        .iter()
-                        .map(|v| v.as_str().unwrap())
-                        .collect();
-                    let args_slice = args_vec.as_slice();
-                    let start_idx = all_args.len();
-                    all_args.extend_from_slice(args_slice);
-                    let end_idx = all_args.len() - 1;
-                    arg_idxes = Some((start_idx, end_idx));
-                }
-
-                // Populate the `dest` field of the `Instr` struct
-                let mut dest_idx = None;
-                if let Some(dest) = instr["dest"].as_str() {
-                    dest_idx = Some(all_dests.len() as usize);
-                    all_dests.push(dest);
-                }
-
-                // Populate the `ty` field of the `Instr` struct
-                let mut ty = None;
-                if let Ok(instr_ty) =
-                    serde_json::from_value::<Type>(instr["type"].clone())
-                {
-                    ty = Some(instr_ty);
-                }
-
-                // Populate the `value` field of the `Instr` struct
-                let mut value = None;
-                if let Some(int_value) = instr["value"].as_i64() {
-                    value = Some(BrilValue::IntVal(int_value));
-                } else if let Some(b) = instr["value"].as_bool() {
-                    value = Some(BrilValue::BoolVal(b));
-                }
-
-                // Populate the `labels` field of the `Instr` struct
-                let mut labels_idxes = None;
-                if let Some(labels_json_vec) = instr["labels"].as_array() {
-                    let labels_vec: Vec<&str> = labels_json_vec
-                        .iter()
-                        .map(|v| v.as_str().unwrap())
-                        .collect();
-                    let labels_slice = labels_vec.as_slice();
-                    let start_idx = all_labels.len();
-                    all_labels.extend_from_slice(labels_slice);
-                    let end_idx = all_labels.len() - 1;
-                    labels_idxes = Some((start_idx, end_idx));
-                }
-
-                let instr = Instr {
-                    op: opcode_idx,
-                    args: arg_idxes,
-                    dest: dest_idx,
-                    ty,
-                    labels: labels_idxes,
-                    value,
-                };
-                all_instrs.push(instr);
-            }
-        }
-        // Convert the args/dest/labels/instrs vecs into slices
-        let args_slice: &[&str] = all_args.as_slice();
-        let dest_slice: &[&str] = &all_dests.as_slice();
-        let labels_slice: &[&str] = &all_labels.as_slice();
-        println!("args = {:?}", args_slice);
-        println!("dest = {:?}", dest_slice);
-        println!("labels = {:?}", labels_slice);
-
-        let all_instrs_slice = &all_instrs.as_slice();
-        for instr in *all_instrs_slice {
-            print_instr(instr, args_slice, dest_slice, labels_slice);
-        }
+        let _instrs = create_instrs(func.clone());
+        // TODO: figure out what to do with _instrs
     }
 }
 
@@ -408,6 +409,8 @@ impl fmt::Display for BrilValue {
 /* -------------------------------------------------------------------------- */
 #[cfg(test)]
 mod tests {
+    use std::{fs::File, io::BufReader, path::Path};
+
     use super::*;
 
     // We use `strum` to iterate over every variant in the `Opcode` enum easily
@@ -438,5 +441,15 @@ mod tests {
             let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
             assert_eq!(opcode.as_str(), op_str);
         }
+    }
+
+    #[test]
+    fn add_bril() {
+        let path = Path::new("test/add.json");
+        let file = File::open(&path).expect("Unable to open file");
+        let reader = BufReader::new(file);
+
+        let json_value: serde_json::Value =
+            serde_json::from_reader(reader).expect("Unable to read JSON");
     }
 }
