@@ -1,0 +1,10 @@
+@main
+	op: br   		args: ["b"]		labels: ["here", "there"]
+.here
+	op: const		dest: v 		type: int		value: 1	
+	op: print		args: ["v"]	
+	op: ret  	
+.there
+	op: const		dest: v 		type: int		value: 2	
+	op: print		args: ["v"]	
+	op: ret  	

@@ -1,0 +1,3 @@
+@main
+	op: add  		dest: v 		type: int		args: ["x", "y"]	
+	op: print		args: ["v"]	

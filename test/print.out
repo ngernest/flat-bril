@@ -1,0 +1,3 @@
+@main
+	op: const		dest: v 		type: int		value: 42	
+	op: print		args: ["v"]	

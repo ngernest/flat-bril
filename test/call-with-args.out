@@ -1,11 +1,11 @@
-main
-op: const	dest: x 	type: int	value: 2	
-op: const	dest: y 	type: int	value: 2	
-op: call 	dest: z 	type: int	args: ["x", "y"]	funcs: ["add2"]
-op: print	args: ["y"]	
-op: print	args: ["z"]	
-add2
-op: add  	dest: w 	type: int	args: ["x", "y"]	
-op: const	dest: y 	type: int	value: 5	
-op: print	args: ["w"]	
-op: ret  	args: ["w"]	
+@main
+	op: const		dest: x 		type: int		value: 2	
+	op: const		dest: y 		type: int		value: 2	
+	op: call 		dest: z 		type: int		args: ["x", "y"]		funcs: ["add2"]
+	op: print		args: ["y"]	
+	op: print		args: ["z"]	
+@add2
+	op: add  		dest: w 		type: int		args: ["x", "y"]	
+	op: const		dest: y 		type: int		value: 5	
+	op: print		args: ["w"]	
+	op: ret  		args: ["w"]	

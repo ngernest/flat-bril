@@ -1,0 +1,5 @@
+@main
+	op: const		dest: v0		type: int		value: 9	
+	op: const		dest: v1		type: int		value: -20	
+	op: div  		dest: res		type: int		args: ["v0", "v1"]	
+	op: print		args: ["res"]	
