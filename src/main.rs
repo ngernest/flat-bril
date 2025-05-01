@@ -23,11 +23,11 @@ use strum_macros::EnumIter;
 ///   (Well-formedness condition: we must have end_idx >= start_idx always
 ///   for the `args` and `labels` fields)
 struct Instr {
-    op: usize,
-    dest: Option<usize>,
+    op: u32,
+    dest: Option<u32>,
     ty: Option<Type>,
-    args: Option<(usize, usize)>,
-    labels: Option<(usize, usize)>,
+    args: Option<(u32, u32)>,
+    labels: Option<(u32, u32)>,
     value: Option<BrilValue>,
 }
 
@@ -53,7 +53,7 @@ enum BrilValue {
 impl Instr {
     /// Creates a new `Instr` struct with the `op` field set to `opcode_idx`,
     /// and all other fields initialized to `None`
-    pub fn init(opcode_idx: usize) -> Self {
+    pub fn init(opcode_idx: u32) -> Self {
         Instr {
             op: opcode_idx,
             dest: None,
@@ -67,11 +67,11 @@ impl Instr {
     /// Creates a new `Instr` struct with all fields populated according
     /// to the arguments supplied to this function
     pub fn new(
-        op: usize,
-        dest: Option<usize>,
+        op: u32,
+        dest: Option<u32>,
         ty: Option<Type>,
-        args: Option<(usize, usize)>,
-        labels: Option<(usize, usize)>,
+        args: Option<(u32, u32)>,
+        labels: Option<(u32, u32)>,
         value: Option<BrilValue>,
     ) -> Self {
         Instr {
@@ -231,7 +231,7 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
         } else {
             let opcode: Opcode = serde_json::from_value(instr["op"].clone())
                 .expect("Invalid opcode");
-            let opcode_idx = opcode.get_index();
+            let opcode_idx = opcode.get_index() as u32;
 
             // Obtain the start/end indexes of the args,
             // (used to populate the `args` field of the `Instr` struct)
@@ -243,13 +243,13 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
                 let start_idx = all_args.len();
                 all_args.extend_from_slice(args_slice);
                 let end_idx = all_args.len() - 1;
-                arg_idxes = Some((start_idx, end_idx));
+                arg_idxes = Some((start_idx as u32, end_idx as u32));
             }
 
             // Populate the `dest` field of the `Instr` struct
             let mut dest_idx = None;
             if let Some(dest) = instr["dest"].as_str() {
-                dest_idx = Some(all_dests.len() as usize);
+                dest_idx = Some(all_dests.len() as u32);
                 all_dests.push(dest);
             }
 
@@ -280,7 +280,7 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
                 let start_idx = all_labels.len();
                 all_labels.extend_from_slice(labels_slice);
                 let end_idx = all_labels.len() - 1;
-                labels_idxes = Some((start_idx, end_idx));
+                labels_idxes = Some((start_idx as u32, end_idx as u32));
             }
 
             // TODO: handle `func` field in `Instr` struct (for effect operations)
@@ -345,12 +345,12 @@ fn print_instr(
     labels_slice: &[&str],
 ) {
     // Look up the actual Opcode corresponding to the op index in the struct
-    let (start_idx, end_idx) = OPCODE_IDX[instr.op];
+    let (start_idx, end_idx) = OPCODE_IDX[instr.op as usize];
     let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
     print!("op: {:5}\t", op_str);
 
     if let Some(dest_idx) = &instr.dest {
-        print!("dest: {:2}\t", dest_slice[*dest_idx]);
+        print!("dest: {:2}\t", dest_slice[*dest_idx as usize]);
     }
 
     if let Some(ty) = &instr.ty {
@@ -361,10 +361,14 @@ fn print_instr(
     }
 
     if let Some((args_start, args_end)) = &instr.args {
-        print!("args: {:?}\t", &args_slice[*args_start..=*args_end]);
+        let args_start = *args_start as usize;
+        let args_end = *args_end as usize;
+        print!("args: {:?}\t", &args_slice[args_start..=args_end]);
     }
     if let Some((labels_start, labels_end)) = &instr.labels {
-        print!("labels: {:?}", &labels_slice[*labels_start..=*labels_end]);
+        let labels_start = *labels_start as usize;
+        let labels_end = *labels_end as usize;
+        print!("labels: {:?}", &labels_slice[labels_start..=labels_end]);
     }
     println!("");
 }
@@ -376,7 +380,7 @@ fn print_instr(
 impl fmt::Display for Instr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Look up the actual Opcode corresponding to the op index in the struct
-        let (start_idx, end_idx) = OPCODE_IDX[self.op];
+        let (start_idx, end_idx) = OPCODE_IDX[self.op as usize];
         let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
         write!(f, "op: {:5}\t", op_str)?;
         if let Some(dest) = &self.dest {
