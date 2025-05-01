@@ -299,11 +299,11 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
     }
     // Convert the args/dest/labels/instrs vecs into slices
     let args_slice: &[&str] = all_args.as_slice();
-    let dest_slice: &[&str] = &all_dests.as_slice();
-    let labels_slice: &[&str] = &all_labels.as_slice();
+    let dest_slice: &[&str] = all_dests.as_slice();
+    let labels_slice: &[&str] = all_labels.as_slice();
 
     for instr in all_instrs.as_slice() {
-        print_instr(&instr, args_slice, dest_slice, labels_slice);
+        print_instr(instr, args_slice, dest_slice, labels_slice);
     }
     all_instrs
 }
@@ -370,7 +370,7 @@ fn print_instr(
         let labels_end = *labels_end as usize;
         print!("labels: {:?}", &labels_slice[labels_start..=labels_end]);
     }
-    println!("");
+    println!();
 }
 
 /// Note: prefer the `print_instr` function above over the implementation of
@@ -476,7 +476,7 @@ mod tests {
     #[test]
     fn test_add_bril_instrs_wf() {
         let path = Path::new("test/add.json");
-        let file = File::open(&path).expect("Unable to open file");
+        let file = File::open(path).expect("Unable to open file");
         let reader = BufReader::new(file);
 
         let json: serde_json::Value =
