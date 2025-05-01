@@ -211,10 +211,8 @@ const OPCODE_IDX: [(usize, usize); NUM_OPCODES] = [
 /// (in the same order)
 fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
     // We reserve a buffer of size `NUM_ARGS` that contains
-    // all the variables used in this function
-    // (Note: this vec is heap-allocated for now, but later on we will convert
-    // it to a slice)
-    // We also do the same for dests, labels and funcs
+    // all the variables used in this function.
+    // We also do the same for dests, labels and funcs.
 
     // TODO: maybe use the `smallvec` or `arrayvec` libraries to create
     // these vectors in the future?
@@ -463,7 +461,7 @@ impl fmt::Display for BrilValue {
 /* -------------------------------------------------------------------------- */
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::BufReader, path::Path};
+    use std::{fs, fs::File, io::BufReader};
 
     use super::*;
 
@@ -497,38 +495,56 @@ mod tests {
         }
     }
 
-    /// Test that all the flattened instructions corresponding to `test/add.bril`
-    /// are well-formed (i.e. for pairs of indices, the end index is always
-    /// >= the start index)
+    /// Test that for each JSON file in the `test` directory,
+    /// its flattened presentation is well-formed
+    /// (i.e. for pairs of indices, the end index is always >= the start index)
     #[test]
-    fn test_add_bril_instrs_wf() {
-        let path = Path::new("test/add.json");
-        let file = File::open(path).expect("Unable to open file");
-        let reader = BufReader::new(file);
+    fn test_bril_instrs_wf() -> io::Result<()> {
+        for entry in fs::read_dir("test")? {
+            let entry = entry?;
+            let path = entry.path();
 
-        let json: serde_json::Value =
-            serde_json::from_reader(reader).expect("Unable to parse JSON");
-        let functions = json["functions"]
-            .as_array()
-            .expect("Expected `functions` to be a JSON array");
-        let instrs: Vec<Instr> = create_instrs(functions[0].clone());
-        for instr in instrs {
-            if let Some((args_start, args_end)) = instr.args {
-                assert!(
-                    args_end >= args_start,
-                    "{} >= {} is false",
-                    args_end,
-                    args_start
-                );
-            }
-            if let Some((labels_start, labels_end)) = instr.labels {
-                assert!(
-                    labels_end >= labels_start,
-                    "{} >= {} is false",
-                    labels_end,
-                    labels_start
-                );
+            if path.is_file()
+                && path.extension().and_then(|ext| ext.to_str()).unwrap()
+                    == "json"
+            {
+                let file = File::open(path).expect("Unable to open file");
+                let reader = BufReader::new(file);
+
+                let json: serde_json::Value = serde_json::from_reader(reader)
+                    .expect("Unable to parse JSON");
+                let functions = json["functions"]
+                    .as_array()
+                    .expect("Expected `functions` to be a JSON array");
+                let instrs: Vec<Instr> = create_instrs(functions[0].clone());
+                for instr in instrs {
+                    if let Some((args_start, args_end)) = instr.args {
+                        assert!(
+                            args_end >= args_start,
+                            "{} >= {} is false",
+                            args_end,
+                            args_start
+                        );
+                    }
+                    if let Some((labels_start, labels_end)) = instr.labels {
+                        assert!(
+                            labels_end >= labels_start,
+                            "{} >= {} is false",
+                            labels_end,
+                            labels_start
+                        );
+                    }
+                    if let Some((funcs_start, funcs_end)) = instr.funcs {
+                        assert!(
+                            funcs_end >= funcs_start,
+                            "{} >= {} is false",
+                            funcs_end,
+                            funcs_start
+                        );
+                    }
+                }
             }
         }
+        Ok(())
     }
 }
