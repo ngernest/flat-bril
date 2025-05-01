@@ -214,17 +214,21 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
     // all the variables used in this function
     // (Note: this vec is heap-allocated for now, but later on we will convert
     // it to a slice)
-    // We also do the same for dests and labels
+    // We also do the same for dests, labels and funcs
+
+    // TODO: maybe use the `smallvec` or `arrayvec` libraries to create
+    // these vectors in the future?
+    // (these are specialized short vectors which minimize heap allocations)
+    // ^^ we should only switch to these after benchmarking the current impl tho
     let mut all_args: Vec<&str> = Vec::with_capacity(NUM_ARGS);
     let mut all_dests: Vec<&str> = Vec::with_capacity(NUM_DESTS);
     let mut all_labels: Vec<&str> = Vec::with_capacity(NUM_LABELS);
-
     let mut all_funcs: Vec<&str> = Vec::with_capacity(NUM_FUNCS);
 
-    let name = func_json["name"]
+    let func_name = func_json["name"]
         .as_str()
         .expect("Expected `name` to be a string");
-    println!("{}", name);
+    println!("{func_name}");
     let instrs = func_json["instrs"]
         .as_array()
         .expect("Expected `instrs` to be a JSON array");
