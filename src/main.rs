@@ -167,14 +167,14 @@ const NUM_OPCODES: usize = 20;
 /// variables in a Bril function)
 const NUM_ARGS: usize = 64;
 
-/// SImilarly, we assume that Bril programs contain at most 128 dests/labels/instrs
+/// Similarly, we assume that Bril programs contain at most 128 dests/labels/instrs
 const NUM_DESTS: usize = 128;
 const NUM_LABELS: usize = 128;
 const NUM_INSTRS: usize = 128;
 
-// The only core Bril instruction with a `funcs` field is `call`,
-// whose `funcs` field is just a length-1 list, so we can get away with making
-// `NUM_FUNCS` a really small power of 2, like 8
+/// The only core Bril instruction with a `funcs` field is `call`,
+/// whose `funcs` field is just a length-1 list, so we can get away with making
+/// `NUM_FUNCS` a really small power of 2, like 8.
 const NUM_FUNCS: usize = 8;
 
 /// Each pair contains the `(start idx, end idx)` of the opcode in `OPCODES`.     
@@ -228,7 +228,7 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
     let func_name = func_json["name"]
         .as_str()
         .expect("Expected `name` to be a string");
-    println!("{func_name}");
+    println!("@{func_name}");
     let instrs = func_json["instrs"]
         .as_array()
         .expect("Expected `instrs` to be a JSON array");
@@ -240,8 +240,7 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
     for instr in instrs {
         if let Some(label) = instr["label"].as_str() {
             // Instruction is a label, doesn't have an opcode
-            // TODO: figure out how to handle labels
-            println!("Encountered label {}", label);
+            println!(".{label}");
             continue;
         } else {
             let opcode: Opcode = serde_json::from_value(instr["op"].clone())
@@ -297,8 +296,7 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
                 labels_idxes = Some((start_idx as u32, end_idx as u32));
             }
 
-            // TODO: handle `func` field in `Instr` struct (for effect operations)
-            // (Test with `call.bril` and `call-with-args.bril`)
+            // Handle `func` field in `Instr` struct
             let mut funcs_idxes = None;
             if let Some(funcs_json_vec) = instr["funcs"].as_array() {
                 let funcs_vec: Vec<&str> = funcs_json_vec
@@ -320,17 +318,9 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
                 value,
                 funcs: funcs_idxes,
             };
+            print_instr(&instr, &all_args, &all_dests, &all_labels, &all_funcs);
             all_instrs.push(instr);
         }
-    }
-    // Convert the args/dest/labels/instrs vecs into slices
-    let args_slice: &[&str] = all_args.as_slice();
-    let dest_slice: &[&str] = all_dests.as_slice();
-    let labels_slice: &[&str] = all_labels.as_slice();
-    let funcs_slice: &[&str] = all_funcs.as_slice();
-
-    for instr in all_instrs.as_slice() {
-        print_instr(instr, args_slice, dest_slice, labels_slice, funcs_slice);
     }
     all_instrs
 }
@@ -367,41 +357,41 @@ fn main() {
 /// the appropriate elements in the other argument slices
 fn print_instr(
     instr: &Instr,
-    args_slice: &[&str],
-    dest_slice: &[&str],
-    labels_slice: &[&str],
-    funcs_slice: &[&str],
+    args_vec: &Vec<&str>,
+    dests_vec: &Vec<&str>,
+    labels_vec: &Vec<&str>,
+    funcs_vec: &Vec<&str>,
 ) {
     // Look up the actual Opcode corresponding to the op index in the struct
     let (start_idx, end_idx) = OPCODE_IDX[instr.op as usize];
     let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
-    print!("op: {:5}\t", op_str);
+    print!("\top: {:5}\t", op_str);
 
     if let Some(dest_idx) = &instr.dest {
-        print!("dest: {:2}\t", dest_slice[*dest_idx as usize]);
+        print!("\tdest: {:2}\t", dests_vec[*dest_idx as usize]);
     }
 
     if let Some(ty) = &instr.ty {
-        print!("type: {:5}\t", ty);
+        print!("\ttype: {:5}\t", ty);
     }
     if let Some(value) = &instr.value {
-        print!("value: {:5}\t", value);
+        print!("\tvalue: {:5}\t", value);
     }
 
     if let Some((args_start, args_end)) = &instr.args {
         let args_start = *args_start as usize;
         let args_end = *args_end as usize;
-        print!("args: {:?}\t", &args_slice[args_start..=args_end]);
+        print!("\targs: {:?}\t", &args_vec[args_start..=args_end]);
     }
     if let Some((labels_start, labels_end)) = &instr.labels {
         let labels_start = *labels_start as usize;
         let labels_end = *labels_end as usize;
-        print!("labels: {:?}", &labels_slice[labels_start..=labels_end]);
+        print!("\tlabels: {:?}", &labels_vec[labels_start..=labels_end]);
     }
     if let Some((funcs_start, funcs_end)) = &instr.funcs {
         let funcs_start = *funcs_start as usize;
         let funcs_end = *funcs_end as usize;
-        print!("funcs: {:?}", &funcs_slice[funcs_start..=funcs_end]);
+        print!("\tfuncs: {:?}", &funcs_vec[funcs_start..=funcs_end]);
     }
 
     println!();
