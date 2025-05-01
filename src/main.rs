@@ -354,13 +354,16 @@ fn main() {
 /* -------------------------------------------------------------------------- */
 
 /// Pretty-prints an `Instr`, using the indexes in the `Instr` struct to fetch
-/// the appropriate elements in the other argument slices
+/// the appropriate elements in the other argument slices.   
+/// Note: via the magic of deref coercion, we can just pass in references to
+/// vectors (i.e. `&Vec<&str>`'s) as arguments to this function,
+/// and Rust will automatically convert them to `&[&str]`!
 fn print_instr(
     instr: &Instr,
-    args_vec: &Vec<&str>,
-    dests_vec: &Vec<&str>,
-    labels_vec: &Vec<&str>,
-    funcs_vec: &Vec<&str>,
+    args: &[&str],
+    dests: &[&str],
+    labels: &[&str],
+    funcs: &[&str],
 ) {
     // Look up the actual Opcode corresponding to the op index in the struct
     let (start_idx, end_idx) = OPCODE_IDX[instr.op as usize];
@@ -368,7 +371,7 @@ fn print_instr(
     print!("\top: {:5}\t", op_str);
 
     if let Some(dest_idx) = &instr.dest {
-        print!("\tdest: {:2}\t", dests_vec[*dest_idx as usize]);
+        print!("\tdest: {:2}\t", dests[*dest_idx as usize]);
     }
 
     if let Some(ty) = &instr.ty {
@@ -381,17 +384,17 @@ fn print_instr(
     if let Some((args_start, args_end)) = &instr.args {
         let args_start = *args_start as usize;
         let args_end = *args_end as usize;
-        print!("\targs: {:?}\t", &args_vec[args_start..=args_end]);
+        print!("\targs: {:?}\t", &args[args_start..=args_end]);
     }
     if let Some((labels_start, labels_end)) = &instr.labels {
         let labels_start = *labels_start as usize;
         let labels_end = *labels_end as usize;
-        print!("\tlabels: {:?}", &labels_vec[labels_start..=labels_end]);
+        print!("\tlabels: {:?}", &labels[labels_start..=labels_end]);
     }
     if let Some((funcs_start, funcs_end)) = &instr.funcs {
         let funcs_start = *funcs_start as usize;
         let funcs_end = *funcs_end as usize;
-        print!("\tfuncs: {:?}", &funcs_vec[funcs_start..=funcs_end]);
+        print!("\tfuncs: {:?}", &funcs[funcs_start..=funcs_end]);
     }
 
     println!();
