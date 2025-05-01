@@ -26,9 +26,10 @@ struct Instr {
     op: u32,
     dest: Option<u32>,
     ty: Option<Type>,
+    value: Option<BrilValue>,
     args: Option<(u32, u32)>,
     labels: Option<(u32, u32)>,
-    value: Option<BrilValue>,
+    funcs: Option<(u32, u32)>,
 }
 
 /// Primitive types in core Bril are either `int` or `bool`
@@ -58,9 +59,10 @@ impl Instr {
             op: opcode_idx,
             dest: None,
             ty: None,
+            value: None,
             args: None,
             labels: None,
-            value: None,
+            funcs: None,
         }
     }
 
@@ -70,17 +72,19 @@ impl Instr {
         op: u32,
         dest: Option<u32>,
         ty: Option<Type>,
+        value: Option<BrilValue>,
         args: Option<(u32, u32)>,
         labels: Option<(u32, u32)>,
-        value: Option<BrilValue>,
+        funcs: Option<(u32, u32)>,
     ) -> Self {
         Instr {
             op,
             dest,
             ty,
+            value,
             args,
             labels,
-            value,
+            funcs,
         }
     }
 }
@@ -168,6 +172,11 @@ const NUM_DESTS: usize = 128;
 const NUM_LABELS: usize = 128;
 const NUM_INSTRS: usize = 128;
 
+// The only core Bril instruction with a `funcs` field is `call`,
+// whose `funcs` field is just a length-1 list, so we can get away with making
+// `NUM_FUNCS` a really small power of 2, like 8
+const NUM_FUNCS: usize = 8;
+
 /// Each pair contains the `(start idx, end idx)` of the opcode in `OPCODES`.     
 /// Note that both start and indexes are inclusive.
 const OPCODE_IDX: [(usize, usize); NUM_OPCODES] = [
@@ -209,6 +218,8 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
     let mut all_args: Vec<&str> = Vec::with_capacity(NUM_ARGS);
     let mut all_dests: Vec<&str> = Vec::with_capacity(NUM_DESTS);
     let mut all_labels: Vec<&str> = Vec::with_capacity(NUM_LABELS);
+
+    let mut all_funcs: Vec<&str> = Vec::with_capacity(NUM_FUNCS);
 
     let name = func_json["name"]
         .as_str()
@@ -276,15 +287,25 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
                     .iter()
                     .map(|v| v.as_str().unwrap())
                     .collect();
-                let labels_slice = labels_vec.as_slice();
                 let start_idx = all_labels.len();
-                all_labels.extend_from_slice(labels_slice);
+                all_labels.extend(labels_vec);
                 let end_idx = all_labels.len() - 1;
                 labels_idxes = Some((start_idx as u32, end_idx as u32));
             }
 
             // TODO: handle `func` field in `Instr` struct (for effect operations)
             // (Test with `call.bril` and `call-with-args.bril`)
+            let mut funcs_idxes = None;
+            if let Some(funcs_json_vec) = instr["funcs"].as_array() {
+                let funcs_vec: Vec<&str> = funcs_json_vec
+                    .iter()
+                    .map(|v| v.as_str().unwrap())
+                    .collect();
+                let start_idx = all_funcs.len();
+                all_funcs.extend(funcs_vec);
+                let end_idx = all_funcs.len() - 1;
+                funcs_idxes = Some((start_idx as u32, end_idx as u32));
+            }
 
             let instr = Instr {
                 op: opcode_idx,
@@ -293,6 +314,7 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
                 ty,
                 labels: labels_idxes,
                 value,
+                funcs: funcs_idxes,
             };
             all_instrs.push(instr);
         }
@@ -301,9 +323,10 @@ fn create_instrs(func_json: serde_json::Value) -> Vec<Instr> {
     let args_slice: &[&str] = all_args.as_slice();
     let dest_slice: &[&str] = all_dests.as_slice();
     let labels_slice: &[&str] = all_labels.as_slice();
+    let funcs_slice: &[&str] = all_funcs.as_slice();
 
     for instr in all_instrs.as_slice() {
-        print_instr(instr, args_slice, dest_slice, labels_slice);
+        print_instr(instr, args_slice, dest_slice, labels_slice, funcs_slice);
     }
     all_instrs
 }
@@ -343,6 +366,7 @@ fn print_instr(
     args_slice: &[&str],
     dest_slice: &[&str],
     labels_slice: &[&str],
+    funcs_slice: &[&str],
 ) {
     // Look up the actual Opcode corresponding to the op index in the struct
     let (start_idx, end_idx) = OPCODE_IDX[instr.op as usize];
@@ -370,6 +394,12 @@ fn print_instr(
         let labels_end = *labels_end as usize;
         print!("labels: {:?}", &labels_slice[labels_start..=labels_end]);
     }
+    if let Some((funcs_start, funcs_end)) = &instr.funcs {
+        let funcs_start = *funcs_start as usize;
+        let funcs_end = *funcs_end as usize;
+        print!("funcs: {:?}", &funcs_slice[funcs_start..=funcs_end]);
+    }
+
     println!();
 }
 
