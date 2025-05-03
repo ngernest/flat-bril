@@ -20,7 +20,7 @@ pub fn unflatten_instrs<'a>(instr_store: &'a InstrStore) -> serde_json::Value {
         }
 
         // Convert the `value` field in the `Instr` to a string
-        let mut val_str = None;
+        let mut val_str: Option<String> = None;
         if let Some(val) = &instr.value {
             match val {
                 BrilValue::BoolVal(b) => {
@@ -43,8 +43,32 @@ pub fn unflatten_instrs<'a>(instr_store: &'a InstrStore) -> serde_json::Value {
             is_value_op = false;
         }
 
-        // TODO: handle args/funcs/labels
-        // (these are more tricky since we have start_idx and end_idx)
+        // Convert the (start_idx, end_idx) for args in the instr to
+        // an actual list of strings (by doing `args_store[start_idx..=end_idx]`)
+        let mut args: &[&str] = &[];
+        if let Some((start_idx, end_idx)) = instr.args {
+            let start_idx = start_idx as usize;
+            let end_idx = end_idx as usize;
+            args = &instr_store.args_store[start_idx..=end_idx];
+        }
+
+        // Convert the (start_idx, end_idx) for labels in the instr to
+        // an actual list of strings
+        let mut labels: &[&str] = &[];
+        if let Some((start_idx, end_idx)) = instr.labels {
+            let start_idx = start_idx as usize;
+            let end_idx = end_idx as usize;
+            labels = &instr_store.labels_store[start_idx..=end_idx];
+        }
+
+        // Convert the (start_idx, end_idx) for funcs in the instr to
+        // an actual list of strings
+        let mut funcs: &[&str] = &[];
+        if let Some((start_idx, end_idx)) = instr.funcs {
+            let start_idx = start_idx as usize;
+            let end_idx = end_idx as usize;
+            funcs = &instr_store.funcs_store[start_idx..=end_idx];
+        }
 
         // Build a JSON object corresponding to the flattened instruction
         if is_value_op {
@@ -52,11 +76,17 @@ pub fn unflatten_instrs<'a>(instr_store: &'a InstrStore) -> serde_json::Value {
               "op": op_str,
               "dest": dest.expect("Expected dest string"),
               "type": ty_str.expect("Expected type string"),
-              "value": val_str.expect("Expected value string")
+              "value": val_str.expect("Expected value string"),
+              "args": args,
+              "labels": labels,
+              "funcs": funcs
             });
         } else {
             let _instr_json = serde_json::json!({
-              "op": op_str
+              "op": op_str,
+              "args": args,
+              "labels": labels,
+              "funcs": funcs
             });
             todo!("figure out how to implement json for effect op")
         }
