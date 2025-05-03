@@ -20,7 +20,9 @@ This outputs:
 - Run `cargo test` to run unit tests
 
 Repo structure:
-- [`main.rs`](./src/main.rs): converts JSON to our flattened representation, WIP
+- [`main.rs`](./src/main.rs): Reads in a JSON Bril file from `stdin`
+- [`flatten.rs`](./src/flatten.rs): Converts a JSON Bril file to a flattened instruction format 
+- [`types.rs`](./src/flatten.rs): Type definitions & pretty-printers
 - [`mk_json.sh`](./mk_json.sh): Bash script, invokes `bril2json` on every `.bril` files in the `test` subdirectory and converts them to `.json` files 
 
 Other stuff: 
