@@ -145,6 +145,14 @@ impl Opcode {
         let (start_idx, end_idx) = self.get_buffer_start_end_indexes();
         &OPCODE_BUFFER[start_idx..=end_idx]
     }
+
+    /// Converts an opcode's index in `OPCODE_IDX` to a `String` representation
+    /// of an opcode
+    pub fn op_idx_to_op_str(op_idx: usize) -> String {
+        let (start_idx, end_idx) = OPCODE_IDX[op_idx];
+        let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
+        op_str.to_string()
+    }
 }
 
 /// Struct that stores all the instrs and the args/dest/labels/funcs arrays
@@ -303,7 +311,6 @@ impl fmt::Display for Type {
 
 impl Type {
     /// Converts a `Type` to its string representation
-    #[allow(dead_code)]
     pub fn as_str(&self) -> &str {
         match self {
             Type::Int => "int",

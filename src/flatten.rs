@@ -139,7 +139,7 @@ mod flatten_tests {
     use std::io;
     use std::{fs, fs::File, io::BufReader};
 
-    use crate::types::{Instr, Opcode, OPCODE_BUFFER, OPCODE_IDX};
+    use crate::types::{Instr, Opcode};
 
     // We use `strum` to iterate over every variant in the `Opcode` enum easily
     use strum::IntoEnumIterator;
@@ -147,7 +147,7 @@ mod flatten_tests {
     /// Test that opcode serialization is correct
     /// (what this test does is it converts the opcode to a string using `serde`,
     /// and checks that the corresponding substring when we index into `OPCODES`
-    /// is the same)
+    /// is the same)c
     #[test]
     fn test_opcode_serialization_round_trip() {
         for opcode in Opcode::iter() {
@@ -160,13 +160,13 @@ mod flatten_tests {
         }
     }
 
-    /// Checks that for all opcodes, their start/end indexes in `OPCODE_IDX` are correct
+    /// Checks that for all opcodes, the `op_idx_to_op_str` method
+    /// is implemented correctly
     #[test]
-    fn test_opcode_indexes_correct() {
+    fn test_op_idx_to_op_str() {
         for opcode in Opcode::iter() {
             let idx = opcode.get_index();
-            let (start_idx, end_idx) = OPCODE_IDX[idx];
-            let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
+            let op_str = Opcode::op_idx_to_op_str(idx);
             assert_eq!(opcode.as_str(), op_str);
         }
     }
