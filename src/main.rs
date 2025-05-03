@@ -2,6 +2,7 @@ use std::io::{self, Read};
 
 mod flatten;
 mod types;
+mod unflatten;
 
 fn main() {
     // Enable stack backtrace for debugging

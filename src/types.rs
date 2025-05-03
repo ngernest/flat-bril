@@ -147,6 +147,18 @@ impl Opcode {
     }
 }
 
+/// Struct that stores all the instrs and the args/dest/labels/funcs arrays
+/// in the same place (note: we create one `InstrStore` per Bril function)
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct InstrStore<'a> {
+    pub args_store: Vec<&'a str>,
+    pub dests_store: Vec<&'a str>,
+    pub labels_store: Vec<&'a str>,
+    pub funcs_store: Vec<&'a str>,
+    pub instrs: Vec<Instr>,
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                  Constants                                 */
 /* -------------------------------------------------------------------------- */

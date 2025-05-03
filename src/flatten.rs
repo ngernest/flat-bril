@@ -118,6 +118,14 @@ pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
             all_instrs.push(instr);
         }
     }
+    // TODO: figure out what to do with _instr_store
+    let _instr_store = InstrStore {
+        args_store: all_args,
+        dests_store: all_dests,
+        labels_store: all_labels,
+        funcs_store: all_funcs,
+        instrs: all_instrs.clone(),
+    };
     all_instrs
 }
 
@@ -125,13 +133,13 @@ pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
 /*                                    Tests                                   */
 /* -------------------------------------------------------------------------- */
 #[cfg(test)]
-mod tests {
+mod flatten_tests {
     use crate::flatten;
 
     use std::io;
     use std::{fs, fs::File, io::BufReader};
 
-    use crate::types::{Instr, OPCODE_BUFFER, OPCODE_IDX, Opcode};
+    use crate::types::{Instr, Opcode, OPCODE_BUFFER, OPCODE_IDX};
 
     // We use `strum` to iterate over every variant in the `Opcode` enum easily
     use strum::IntoEnumIterator;
