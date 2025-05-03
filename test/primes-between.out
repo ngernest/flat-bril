@@ -1,0 +1,53 @@
+@main
+.for.outer.init
+	op: const		dest: t0		type: int		value: 2	
+	op: lt   		dest: t1		type: bool		args: ["a", "t0"]	
+	op: br   		args: ["t1"]		labels: ["true", "false"]
+.true
+	op: const		dest: t2		type: int		value: 2	
+	op: jmp  		labels: ["for.outer.cond"]
+.false
+	op: id   		dest: t2		type: int		args: ["a"]	
+.for.outer.cond
+	op: le   		dest: t3		type: bool		args: ["t2", "b"]	
+	op: br   		args: ["t3"]		labels: ["for.outer.body", "for.outer.end"]
+.for.outer.body
+	op: const		dest: t4		type: int		value: 1	
+	op: eq   		dest: t5		type: bool		args: ["t4", "t4"]	
+.for.inner.init
+	op: const		dest: t6		type: int		value: 2	
+	op: const		dest: t7		type: int		value: 2	
+.for.inner.cond
+	op: div  		dest: t8		type: int		args: ["t2", "t7"]	
+	op: le   		dest: t9		type: bool		args: ["t6", "t8"]	
+	op: br   		args: ["t9"]		labels: ["for.inner.body", "for.inner.end"]
+.for.inner.body
+	op: call 		dest: t10		type: int		args: ["t2", "t6"]		funcs: ["mod"]
+	op: const		dest: t11		type: int		value: 0	
+	op: eq   		dest: t12		type: bool		args: ["t10", "t11"]	
+	op: br   		args: ["t12"]		labels: ["if.inner.body", "if.inner.end"]
+.if.inner.body
+	op: const		dest: t13		type: int		value: 1	
+	op: const		dest: t14		type: int		value: 2	
+	op: eq   		dest: t5		type: bool		args: ["t13", "t14"]	
+	op: jmp  		labels: ["for.inner.end"]
+.if.inner.end
+	op: const		dest: t15		type: int		value: 1	
+	op: add  		dest: t6		type: int		args: ["t15", "t6"]	
+	op: jmp  		labels: ["for.inner.cond"]
+.for.inner.end
+	op: const		dest: t16		type: int		value: 1	
+	op: add  		dest: t6		type: int		args: ["t6", "t16"]	
+	op: br   		args: ["t5"]		labels: ["if.outer.body", "if.outer.end"]
+.if.outer.body
+	op: print		args: ["t2"]	
+.if.outer.end
+	op: const		dest: t17		type: int		value: 1	
+	op: add  		dest: t2		type: int		args: ["t2", "t17"]	
+	op: jmp  		labels: ["for.outer.cond"]
+.for.outer.end
+@mod
+	op: div  		dest: t1		type: int		args: ["a", "b"]	
+	op: mul  		dest: t2		type: int		args: ["b", "t1"]	
+	op: sub  		dest: t3		type: int		args: ["a", "t2"]	
+	op: ret  		args: ["t3"]	

@@ -1,0 +1,23 @@
+@main
+	op: const		dest: one		type: int		value: 1	
+	op: mul  		dest: n_sq		type: int		args: ["n", "n"]	
+	op: id   		dest: a 		type: int		args: ["one"]	
+.outer_loop
+	op: id   		dest: b 		type: int		args: ["one"]	
+.inner_loop
+	op: mul  		dest: a_sq		type: int		args: ["a", "a"]	
+	op: mul  		dest: b_sq		type: int		args: ["b", "b"]	
+	op: add  		dest: sum		type: int		args: ["a_sq", "b_sq"]	
+	op: eq   		dest: found		type: bool		args: ["sum", "n_sq"]	
+	op: br   		args: ["found"]		labels: ["found", "inner_continue"]
+.found
+	op: print		args: ["b", "a"]	
+.inner_continue
+	op: add  		dest: b 		type: int		args: ["b", "one"]	
+	op: ge   		dest: done		type: bool		args: ["b", "a"]	
+	op: br   		args: ["done"]		labels: ["outer_continue", "inner_loop"]
+.outer_continue
+	op: add  		dest: a 		type: int		args: ["a", "one"]	
+	op: ge   		dest: done		type: bool		args: ["a", "n"]	
+	op: br   		args: ["done"]		labels: ["finish", "outer_loop"]
+.finish

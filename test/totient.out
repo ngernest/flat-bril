@@ -1,0 +1,45 @@
+@main
+	op: print		args: ["n"]	
+	op: call 		dest: tot		type: int		args: ["n"]		funcs: ["totient"]
+	op: print		args: ["tot"]	
+@totient
+	op: id   		dest: result		type: int		args: ["n"]	
+	op: const		dest: p 		type: int		value: 2	
+	op: const		dest: one		type: int		value: 1	
+	op: const		dest: zero		type: int		value: 0	
+.for.set.cond
+	op: mul  		dest: pp		type: int		args: ["p", "p"]	
+	op: le   		dest: cond		type: bool		args: ["pp", "n"]	
+	op: br   		args: ["cond"]		labels: ["for.set.body", "for.set.end"]
+.for.set.body
+	op: call 		dest: npmod		type: int		args: ["n", "p"]		funcs: ["mod"]
+	op: eq   		dest: if_cond		type: bool		args: ["npmod", "zero"]	
+	op: br   		args: ["if_cond"]		labels: ["if_lbl", "else_lbl"]
+.if_lbl
+.while.set.cond
+	op: call 		dest: npmod		type: int		args: ["n", "p"]		funcs: ["mod"]
+	op: eq   		dest: while_cond		type: bool		args: ["npmod", "zero"]	
+	op: br   		args: ["while_cond"]		labels: ["while.body", "while.end"]
+.while.body
+	op: div  		dest: npdiv		type: int		args: ["n", "p"]	
+	op: id   		dest: n 		type: int		args: ["npdiv"]	
+	op: jmp  		labels: ["while.set.cond"]
+.while.end
+	op: div  		dest: resdiv		type: int		args: ["result", "p"]	
+	op: sub  		dest: result		type: int		args: ["result", "resdiv"]	
+.else_lbl
+	op: add  		dest: p 		type: int		args: ["p", "one"]	
+	op: jmp  		labels: ["for.set.cond"]
+.for.set.end
+	op: gt   		dest: final_if_cond		type: bool		args: ["n", "one"]	
+	op: br   		args: ["final_if_cond"]		labels: ["final_if_label", "final_else_label"]
+.final_if_label
+	op: div  		dest: resdiv		type: int		args: ["result", "n"]	
+	op: sub  		dest: result		type: int		args: ["result", "resdiv"]	
+.final_else_label
+	op: ret  		args: ["result"]	
+@mod
+	op: div  		dest: ad		type: int		args: ["a", "b"]	
+	op: mul  		dest: mad		type: int		args: ["b", "ad"]	
+	op: sub  		dest: ans		type: int		args: ["a", "mad"]	
+	op: ret  		args: ["ans"]	

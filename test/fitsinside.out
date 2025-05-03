@@ -1,0 +1,12 @@
+@main
+	op: call 		dest: output		type: bool		args: ["width1", "height1", "width2", "height2"]		funcs: ["fitsInside"]
+	op: print		args: ["output"]	
+@fitsInside
+	op: le   		dest: width_check		type: bool		args: ["w1", "w2"]	
+	op: le   		dest: height_check		type: bool		args: ["h1", "h2"]	
+	op: and  		dest: first_check		type: bool		args: ["width_check", "height_check"]	
+	op: le   		dest: widthheight_check		type: bool		args: ["w1", "h2"]	
+	op: le   		dest: heightwidth_check		type: bool		args: ["h1", "w2"]	
+	op: and  		dest: second_check		type: bool		args: ["widthheight_check", "heightwidth_check"]	
+	op: or   		dest: ret_val		type: bool		args: ["first_check", "second_check"]	
+	op: ret  		args: ["ret_val"]	

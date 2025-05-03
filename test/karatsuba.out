@@ -1,0 +1,92 @@
+@main
+	op: call 		dest: result		type: int		args: ["x", "y"]		funcs: ["karatsuba"]
+	op: print		args: ["result"]	
+@karatsuba
+	op: const		dest: one		type: int		value: 1	
+	op: const		dest: two		type: int		value: 2	
+	op: const		dest: base		type: int		value: 10	
+	op: call 		dest: x_digits		type: int		args: ["x"]		funcs: ["num_digits"]
+	op: call 		dest: y_digits		type: int		args: ["y"]		funcs: ["num_digits"]
+	op: eq   		dest: x_1_digit		type: bool		args: ["x_digits", "one"]	
+	op: eq   		dest: y_1_digit		type: bool		args: ["y_digits", "one"]	
+	op: or   		dest: cond		type: bool		args: ["x_1_digit", "y_1_digit"]	
+	op: br   		args: ["cond"]		labels: ["then", "else"]
+.then
+	op: mul  		dest: result		type: int		args: ["x", "y"]	
+	op: jmp  		labels: ["end"]
+.else
+	op: call 		dest: n 		type: int		args: ["x_digits", "y_digits"]		funcs: ["max"]
+	op: div  		dest: n2		type: int		args: ["n", "two"]	
+	op: call 		dest: pow_n2		type: int		args: ["base", "n2"]		funcs: ["pow"]
+	op: div  		dest: a 		type: int		args: ["x", "pow_n2"]	
+	op: call 		dest: b 		type: int		args: ["x", "pow_n2"]		funcs: ["mod"]
+	op: div  		dest: c 		type: int		args: ["y", "pow_n2"]	
+	op: call 		dest: d 		type: int		args: ["y", "pow_n2"]		funcs: ["mod"]
+	op: call 		dest: z0		type: int		args: ["b", "d"]		funcs: ["karatsuba"]
+	op: add  		dest: a_plus_b		type: int		args: ["a", "b"]	
+	op: add  		dest: c_plus_d		type: int		args: ["c", "d"]	
+	op: call 		dest: z1		type: int		args: ["a_plus_b", "c_plus_d"]		funcs: ["karatsuba"]
+	op: call 		dest: z2		type: int		args: ["a", "c"]		funcs: ["karatsuba"]
+	op: mul  		dest: hi_shift_factor		type: int		args: ["n2", "two"]	
+	op: call 		dest: hi_shift		type: int		args: ["base", "hi_shift_factor"]		funcs: ["pow"]
+	op: mul  		dest: hi_shifted		type: int		args: ["z2", "hi_shift"]	
+	op: sub  		dest: mid		type: int		args: ["z1", "z2"]	
+	op: sub  		dest: mid		type: int		args: ["mid", "z0"]	
+	op: mul  		dest: mid_shifted		type: int		args: ["mid", "pow_n2"]	
+	op: add  		dest: result		type: int		args: ["hi_shifted", "mid_shifted"]	
+	op: add  		dest: result		type: int		args: ["result", "z0"]	
+	op: jmp  		labels: ["end"]
+.end
+	op: ret  		args: ["result"]	
+@num_digits
+	op: const		dest: one		type: int		value: 1	
+	op: const		dest: base		type: int		value: 10	
+	op: id   		dest: digits		type: int		args: ["one"]	
+	op: id   		dest: power		type: int		args: ["one"]	
+.while.cond
+	op: div  		dest: temp		type: int		args: ["n", "power"]	
+	op: lt   		dest: is_term		type: bool		args: ["temp", "base"]	
+	op: br   		args: ["is_term"]		labels: ["while.finish", "while.body"]
+.while.body
+	op: add  		dest: digits		type: int		args: ["digits", "one"]	
+	op: mul  		dest: power		type: int		args: ["power", "base"]	
+	op: jmp  		labels: ["while.cond"]
+.while.finish
+	op: ret  		args: ["digits"]	
+@max
+	op: gt   		dest: cond		type: bool		args: ["a", "b"]	
+	op: br   		args: ["cond"]		labels: ["then", "else"]
+.then
+	op: ret  		args: ["a"]	
+.else
+	op: ret  		args: ["b"]	
+@mod
+	op: div  		dest: c 		type: int		args: ["a", "b"]	
+	op: mul  		dest: d 		type: int		args: ["c", "b"]	
+	op: sub  		dest: remainder		type: int		args: ["a", "d"]	
+	op: ret  		args: ["remainder"]	
+@pow
+	op: id   		dest: v0		type: int		args: ["x"]	
+	op: id   		dest: res		type: int		args: ["v0"]	
+	op: const		dest: v2		type: int		value: 0	
+	op: id   		dest: _i		type: int		args: ["v2"]	
+.for.cond.1
+	op: id   		dest: v3		type: int		args: ["_i"]	
+	op: id   		dest: v4		type: int		args: ["n"]	
+	op: const		dest: v5		type: int		value: 1	
+	op: sub  		dest: v6		type: int		args: ["v4", "v5"]	
+	op: lt   		dest: v7		type: bool		args: ["v3", "v6"]	
+	op: br   		args: ["v7"]		labels: ["for.body.1", "for.end.1"]
+.for.body.1
+	op: id   		dest: v8		type: int		args: ["res"]	
+	op: id   		dest: v9		type: int		args: ["x"]	
+	op: mul  		dest: v10		type: int		args: ["v8", "v9"]	
+	op: id   		dest: res		type: int		args: ["v10"]	
+	op: id   		dest: v11		type: int		args: ["_i"]	
+	op: const		dest: v12		type: int		value: 1	
+	op: add  		dest: v13		type: int		args: ["v11", "v12"]	
+	op: id   		dest: _i		type: int		args: ["v13"]	
+	op: jmp  		labels: ["for.cond.1"]
+.for.end.1
+	op: id   		dest: v14		type: int		args: ["res"]	
+	op: ret  		args: ["v14"]	

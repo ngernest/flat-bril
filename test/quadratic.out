@@ -1,0 +1,71 @@
+@main
+	op: call 		args: ["a", "b", "c"]		funcs: ["quadratic"]
+@sqrt
+	op: const		dest: v1		type: int		value: 1	
+	op: id   		dest: i 		type: int		args: ["v1"]	
+.for.cond.0
+	op: id   		dest: v2		type: int		args: ["i"]	
+	op: id   		dest: v3		type: int		args: ["x"]	
+	op: const		dest: v4		type: int		value: 1	
+	op: sub  		dest: v5		type: int		args: ["v3", "v4"]	
+	op: lt   		dest: v6		type: bool		args: ["v2", "v5"]	
+	op: br   		args: ["v6"]		labels: ["for.body.0", "for.end.0"]
+.for.body.0
+	op: id   		dest: v8		type: int		args: ["i"]	
+	op: id   		dest: v9		type: int		args: ["i"]	
+	op: mul  		dest: v10		type: int		args: ["v8", "v9"]	
+	op: id   		dest: v11		type: int		args: ["x"]	
+	op: ge   		dest: v12		type: bool		args: ["v10", "v11"]	
+	op: br   		args: ["v12"]		labels: ["then.7", "else.7"]
+.then.7
+	op: id   		dest: v13		type: int		args: ["i"]	
+	op: ret  		args: ["v13"]	
+.else.7
+.endif.7
+	op: id   		dest: v14		type: int		args: ["i"]	
+	op: const		dest: v15		type: int		value: 1	
+	op: add  		dest: v16		type: int		args: ["v14", "v15"]	
+	op: id   		dest: i 		type: int		args: ["v16"]	
+	op: jmp  		labels: ["for.cond.0"]
+.for.end.0
+	op: const		dest: v17		type: int		value: 0	
+	op: ret  		args: ["v17"]	
+@quadratic
+	op: id   		dest: v0		type: int		args: ["b"]	
+	op: id   		dest: v1		type: int		args: ["b"]	
+	op: mul  		dest: v2		type: int		args: ["v0", "v1"]	
+	op: const		dest: v3		type: int		value: 4	
+	op: id   		dest: v4		type: int		args: ["a"]	
+	op: mul  		dest: v5		type: int		args: ["v3", "v4"]	
+	op: id   		dest: v6		type: int		args: ["c"]	
+	op: mul  		dest: v7		type: int		args: ["v5", "v6"]	
+	op: sub  		dest: v8		type: int		args: ["v2", "v7"]	
+	op: id   		dest: s 		type: int		args: ["v8"]	
+	op: const		dest: v9		type: int		value: 2	
+	op: id   		dest: v10		type: int		args: ["a"]	
+	op: mul  		dest: v11		type: int		args: ["v9", "v10"]	
+	op: id   		dest: d 		type: int		args: ["v11"]	
+	op: const		dest: v12		type: int		value: 0	
+	op: id   		dest: v13		type: int		args: ["b"]	
+	op: sub  		dest: v14		type: int		args: ["v12", "v13"]	
+	op: id   		dest: v15		type: int		args: ["s"]	
+	op: call 		dest: v16		type: int		args: ["v15"]		funcs: ["sqrt"]
+	op: add  		dest: v17		type: int		args: ["v14", "v16"]	
+	op: id   		dest: r1		type: int		args: ["v17"]	
+	op: const		dest: v18		type: int		value: 0	
+	op: id   		dest: v19		type: int		args: ["b"]	
+	op: sub  		dest: v20		type: int		args: ["v18", "v19"]	
+	op: id   		dest: v21		type: int		args: ["s"]	
+	op: call 		dest: v22		type: int		args: ["v21"]		funcs: ["sqrt"]
+	op: sub  		dest: v23		type: int		args: ["v20", "v22"]	
+	op: id   		dest: r2		type: int		args: ["v23"]	
+	op: id   		dest: v24		type: int		args: ["r1"]	
+	op: id   		dest: v25		type: int		args: ["d"]	
+	op: div  		dest: v26		type: int		args: ["v24", "v25"]	
+	op: print		args: ["v26"]	
+	op: const		dest: v27		type: int		value: 0	
+	op: id   		dest: v28		type: int		args: ["r2"]	
+	op: id   		dest: v29		type: int		args: ["d"]	
+	op: div  		dest: v30		type: int		args: ["v28", "v29"]	
+	op: print		args: ["v30"]	
+	op: const		dest: v31		type: int		value: 0	

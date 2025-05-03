@@ -1,0 +1,27 @@
+@main
+	op: id   		dest: n 		type: int		args: ["input"]	
+	op: const		dest: v0		type: int		value: 0	
+	op: const		dest: v1		type: int		value: 10	
+	op: id   		dest: result		type: int		args: ["v0"]	
+	op: const		dest: v2		type: bool		value: true	
+	op: id   		dest: notdone		type: bool		args: ["v2"]	
+.for.cond.3
+	op: id   		dest: v4		type: bool		args: ["notdone"]	
+	op: br   		args: ["v4"]		labels: ["for.body.3", "for.end.3"]
+.for.body.3
+	op: id   		dest: v5		type: int		args: ["n"]	
+	op: div  		dest: a 		type: int		args: ["v5", "v1"]	
+	op: mul  		dest: floor		type: int		args: ["a", "v1"]	
+	op: sub  		dest: remainder		type: int		args: ["v5", "floor"]	
+	op: mul  		dest: result		type: int		args: ["result", "v1"]	
+	op: add  		dest: result		type: int		args: ["result", "remainder"]	
+	op: id   		dest: n 		type: int		args: ["a"]	
+	op: eq   		dest: comp1		type: bool		args: ["n", "v0"]	
+	op: br   		args: ["comp1"]		labels: ["if.body", "for.incre"]
+.if.body
+	op: const		dest: notdone		type: bool		value: false	
+	op: jmp  		labels: ["for.cond.3"]
+.for.incre
+	op: jmp  		labels: ["for.cond.3"]
+.for.end.3
+	op: print		args: ["result"]	

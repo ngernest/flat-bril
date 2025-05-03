@@ -1,0 +1,17 @@
+@main
+	op: const		dest: one		type: int		value: 1	
+	op: const		dest: r_n		type: int		value: 1	
+	op: const		dest: i 		type: int		value: 0	
+.loop
+	op: lt   		dest: cond		type: bool		args: ["i", "n"]	
+	op: br   		args: ["cond"]		labels: ["body", "done"]
+.body
+	op: mul  		dest: r_n		type: int		args: ["r_n", "r"]	
+	op: add  		dest: i 		type: int		args: ["i", "one"]	
+	op: jmp  		labels: ["loop"]
+.done
+	op: sub  		dest: one_minus_r_n		type: int		args: ["one", "r_n"]	
+	op: mul  		dest: numerator		type: int		args: ["a", "one_minus_r_n"]	
+	op: sub  		dest: one_minus_r		type: int		args: ["one", "r"]	
+	op: div  		dest: sum		type: int		args: ["numerator", "one_minus_r"]	
+	op: print		args: ["sum"]	

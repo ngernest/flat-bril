@@ -1,0 +1,71 @@
+@mod2
+	op: const		dest: two		type: int		value: 2	
+	op: div  		dest: tmp		type: int		args: ["a", "two"]	
+	op: mul  		dest: tmp2		type: int		args: ["tmp", "two"]	
+	op: sub  		dest: tmp3		type: int		args: ["a", "tmp2"]	
+	op: const		dest: one		type: int		value: 1	
+	op: eq   		dest: ans		type: bool		args: ["one", "tmp3"]	
+	op: ret  		args: ["ans"]	
+@loop_subroutine
+	op: const		dest: i 		type: int		value: 0	
+	op: const		dest: n 		type: int		value: 63	
+	op: const		dest: one		type: int		value: 1	
+	op: const		dest: two		type: int		value: 2	
+	op: const		dest: ans		type: int		value: 0	
+	op: const		dest: to_add		type: int		value: 1	
+.loop
+	op: le   		dest: cond		type: bool		args: ["i", "n"]	
+	op: br   		args: ["cond"]		labels: ["here", "end"]
+.here
+	op: call 		dest: mod2a		type: bool		args: ["a"]		funcs: ["mod2"]
+	op: call 		dest: mod2b		type: bool		args: ["b"]		funcs: ["mod2"]
+	op: and  		dest: cond_add		type: bool		args: ["mod2a", "mod2b"]	
+	op: br   		args: ["c"]		labels: ["doOr", "stay"]
+.doOr
+	op: or   		dest: cond_add		type: bool		args: ["mod2a", "mod2b"]	
+.stay
+	op: br   		args: ["cond_add"]		labels: ["add", "end_loop"]
+.add
+	op: add  		dest: ans		type: int		args: ["ans", "to_add"]	
+.end_loop
+	op: div  		dest: a 		type: int		args: ["a", "two"]	
+	op: div  		dest: b 		type: int		args: ["b", "two"]	
+	op: mul  		dest: to_add		type: int		args: ["to_add", "two"]	
+	op: add  		dest: i 		type: int		args: ["i", "one"]	
+	op: jmp  		labels: ["loop"]
+.end
+	op: ret  		args: ["ans"]	
+@OR
+	op: const		dest: oper		type: bool		value: true	
+	op: call 		dest: v1		type: int		args: ["a", "b", "oper"]		funcs: ["loop_subroutine"]
+	op: ret  		args: ["v1"]	
+@AND
+	op: const		dest: oper		type: bool		value: false	
+	op: call 		dest: v1		type: int		args: ["a", "b", "oper"]		funcs: ["loop_subroutine"]
+	op: ret  		args: ["v1"]	
+@XOR
+	op: call 		dest: and_val		type: int		args: ["a", "b"]		funcs: ["AND"]
+	op: call 		dest: or_val		type: int		args: ["a", "b"]		funcs: ["OR"]
+	op: sub  		dest: ans		type: int		args: ["or_val", "and_val"]	
+	op: ret  		args: ["ans"]	
+@main
+	op: const		dest: one		type: int		value: 1	
+	op: const		dest: zero		type: int		value: 0	
+	op: sub  		dest: sel		type: int		args: ["c", "one"]	
+	op: id   		dest: ans		type: int		args: ["zero"]	
+	op: lt   		dest: less		type: bool		args: ["sel", "zero"]	
+	op: eq   		dest: equal		type: bool		args: ["sel", "zero"]	
+	op: gt   		dest: greater		type: bool		args: ["sel", "zero"]	
+	op: br   		args: ["less"]		labels: ["and_op", "useless_lbl"]
+.useless_lbl
+	op: br   		args: ["equal"]		labels: ["or_op", "xor_op"]
+.and_op
+	op: call 		dest: ans		type: int		args: ["a", "b"]		funcs: ["AND"]
+	op: jmp  		labels: ["end"]
+.or_op
+	op: call 		dest: ans		type: int		args: ["a", "b"]		funcs: ["OR"]
+	op: jmp  		labels: ["end"]
+.xor_op
+	op: call 		dest: ans		type: int		args: ["a", "b"]		funcs: ["XOR"]
+.end
+	op: print		args: ["ans"]	

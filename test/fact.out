@@ -1,0 +1,20 @@
+@main
+	op: call 		dest: x 		type: int		args: ["a"]		funcs: ["fact"]
+	op: print		args: ["x"]	
+	op: const		dest: v13		type: int		value: 0	
+@fact
+	op: id   		dest: v1		type: int		args: ["a"]	
+	op: const		dest: v2		type: int		value: 0	
+	op: eq   		dest: v3		type: bool		args: ["v1", "v2"]	
+	op: br   		args: ["v3"]		labels: ["then.0", "else.0"]
+.then.0
+	op: const		dest: v4		type: int		value: 1	
+	op: ret  		args: ["v4"]	
+.else.0
+	op: id   		dest: v5		type: int		args: ["a"]	
+	op: id   		dest: v6		type: int		args: ["a"]	
+	op: const		dest: v7		type: int		value: 1	
+	op: sub  		dest: v8		type: int		args: ["v6", "v7"]	
+	op: call 		dest: v9		type: int		args: ["v8"]		funcs: ["fact"]
+	op: mul  		dest: v10		type: int		args: ["v5", "v9"]	
+	op: ret  		args: ["v10"]	

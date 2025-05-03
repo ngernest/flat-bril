@@ -1,0 +1,43 @@
+@main
+	op: const		dest: v0		type: int		value: 5	
+	op: id   		dest: x 		type: int		args: ["v0"]	
+	op: id   		dest: v1		type: int		args: ["x"]	
+	op: call 		args: ["v1"]		funcs: ["generateNthRow"]
+	op: const		dest: v2		type: int		value: 0	
+@generateNthRow
+	op: const		dest: v0		type: int		value: 1	
+	op: id   		dest: prev		type: int		args: ["v0"]	
+	op: id   		dest: v1		type: int		args: ["prev"]	
+	op: print		args: ["v1"]	
+	op: const		dest: v2		type: int		value: 0	
+	op: const		dest: v4		type: int		value: 0	
+	op: id   		dest: i 		type: int		args: ["v4"]	
+.for.cond.3
+	op: id   		dest: v5		type: int		args: ["i"]	
+	op: id   		dest: v6		type: int		args: ["x"]	
+	op: lt   		dest: v7		type: bool		args: ["v5", "v6"]	
+	op: br   		args: ["v7"]		labels: ["for.body.3", "for.end.3"]
+.for.body.3
+	op: id   		dest: v8		type: int		args: ["x"]	
+	op: id   		dest: v9		type: int		args: ["i"]	
+	op: sub  		dest: v10		type: int		args: ["v8", "v9"]	
+	op: id   		dest: temp		type: int		args: ["v10"]	
+	op: id   		dest: v11		type: int		args: ["temp"]	
+	op: const		dest: v12		type: int		value: 1	
+	op: add  		dest: v13		type: int		args: ["v11", "v12"]	
+	op: id   		dest: temp		type: int		args: ["v13"]	
+	op: id   		dest: v14		type: int		args: ["prev"]	
+	op: id   		dest: v15		type: int		args: ["temp"]	
+	op: mul  		dest: v16		type: int		args: ["v14", "v15"]	
+	op: id   		dest: curr		type: int		args: ["v16"]	
+	op: id   		dest: v17		type: int		args: ["curr"]	
+	op: print		args: ["v17"]	
+	op: const		dest: v18		type: int		value: 0	
+	op: id   		dest: v19		type: int		args: ["curr"]	
+	op: id   		dest: prev		type: int		args: ["v19"]	
+	op: id   		dest: v20		type: int		args: ["i"]	
+	op: const		dest: v21		type: int		value: 1	
+	op: add  		dest: v22		type: int		args: ["v20", "v21"]	
+	op: id   		dest: i 		type: int		args: ["v22"]	
+	op: jmp  		labels: ["for.cond.3"]
+.for.end.3

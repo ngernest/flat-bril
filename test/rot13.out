@@ -1,0 +1,13 @@
+@main
+	op: call 		dest: aed		type: int		args: ["input"]		funcs: ["rot"]
+	op: print		args: ["aed"]	
+@rot
+	op: const		dest: thirteen		type: int		value: 13	
+	op: const		dest: twenty_six		type: int		value: 26	
+	op: add  		dest: shifted		type: int		args: ["n", "thirteen"]	
+	op: ge   		dest: over		type: bool		args: ["shifted", "twenty_six"]	
+	op: br   		args: ["over"]		labels: ["if", "else"]
+.if
+	op: sub  		dest: shifted		type: int		args: ["shifted", "twenty_six"]	
+.else
+	op: ret  		args: ["shifted"]	

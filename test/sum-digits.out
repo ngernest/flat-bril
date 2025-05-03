@@ -1,0 +1,30 @@
+@main
+	op: const		dest: v0		type: int		value: 0	
+	op: id   		dest: total		type: int		args: ["v0"]	
+.for.cond.1
+	op: id   		dest: v2		type: int		args: ["n"]	
+	op: const		dest: v3		type: int		value: 0	
+	op: gt   		dest: v4		type: bool		args: ["v2", "v3"]	
+	op: br   		args: ["v4"]		labels: ["for.body.1", "for.end.1"]
+.for.body.1
+	op: id   		dest: v5		type: int		args: ["n"]	
+	op: const		dest: v6		type: int		value: 10	
+	op: div  		dest: v7		type: int		args: ["v5", "v6"]	
+	op: id   		dest: tenth		type: int		args: ["v7"]	
+	op: id   		dest: v8		type: int		args: ["n"]	
+	op: const		dest: v9		type: int		value: 10	
+	op: id   		dest: v10		type: int		args: ["tenth"]	
+	op: mul  		dest: v11		type: int		args: ["v9", "v10"]	
+	op: sub  		dest: v12		type: int		args: ["v8", "v11"]	
+	op: id   		dest: currentDigit		type: int		args: ["v12"]	
+	op: id   		dest: v13		type: int		args: ["total"]	
+	op: id   		dest: v14		type: int		args: ["currentDigit"]	
+	op: add  		dest: v15		type: int		args: ["v13", "v14"]	
+	op: id   		dest: total		type: int		args: ["v15"]	
+	op: id   		dest: v16		type: int		args: ["tenth"]	
+	op: id   		dest: n 		type: int		args: ["v16"]	
+	op: jmp  		labels: ["for.cond.1"]
+.for.end.1
+	op: id   		dest: v17		type: int		args: ["total"]	
+	op: print		args: ["v17"]	
+	op: const		dest: v18		type: int		value: 0	

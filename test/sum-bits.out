@@ -1,0 +1,21 @@
+@main
+	op: const		dest: sum		type: int		value: 0	
+	op: const		dest: two		type: int		value: 2	
+	op: const		dest: zero		type: int		value: 0	
+.loop
+	op: eq   		dest: cond		type: bool		args: ["input", "zero"]	
+	op: br   		args: ["cond"]		labels: ["done", "body"]
+.body
+	op: call 		dest: bit		type: int		args: ["input", "two"]		funcs: ["mod"]
+	op: div  		dest: input		type: int		args: ["input", "two"]	
+	op: add  		dest: sum		type: int		args: ["sum", "bit"]	
+	op: jmp  		labels: ["loop"]
+.done
+	op: print		args: ["sum"]	
+	op: ret  	
+@mod
+	op: div  		dest: quotient		type: int		args: ["dividend", "divisor"]	
+	op: const		dest: two		type: int		value: 2	
+	op: mul  		dest: prod		type: int		args: ["two", "quotient"]	
+	op: sub  		dest: diff		type: int		args: ["dividend", "prod"]	
+	op: ret  		args: ["diff"]	

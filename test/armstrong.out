@@ -1,0 +1,50 @@
+@main
+	op: const		dest: zero		type: int		value: 0	
+	op: const		dest: ten		type: int		value: 10	
+	op: const		dest: sum		type: int		value: 0	
+	op: call 		dest: digits		type: int		args: ["input"]		funcs: ["getDigits"]
+	op: id   		dest: tmp		type: int		args: ["input"]	
+.loop
+	op: gt   		dest: b 		type: bool		args: ["tmp", "zero"]	
+	op: br   		args: ["b"]		labels: ["body", "done"]
+.body
+	op: call 		dest: digit		type: int		args: ["tmp", "ten"]		funcs: ["mod"]
+	op: call 		dest: pow		type: int		args: ["digit", "digits"]		funcs: ["power"]
+	op: add  		dest: sum		type: int		args: ["sum", "pow"]	
+	op: div  		dest: tmp		type: int		args: ["tmp", "ten"]	
+	op: jmp  		labels: ["loop"]
+.done
+	op: eq   		dest: res		type: bool		args: ["input", "sum"]	
+	op: print		args: ["res"]	
+@getDigits
+	op: const		dest: ten		type: int		value: 10	
+	op: const		dest: zero		type: int		value: 0	
+	op: const		dest: one		type: int		value: 1	
+	op: div  		dest: div		type: int		args: ["n", "ten"]	
+	op: eq   		dest: cond		type: bool		args: ["div", "zero"]	
+	op: br   		args: ["cond"]		labels: ["then", "else"]
+.then
+	op: ret  		args: ["one"]	
+.else
+	op: call 		dest: rec		type: int		args: ["div"]		funcs: ["getDigits"]
+	op: add  		dest: res		type: int		args: ["rec", "one"]	
+	op: ret  		args: ["res"]	
+@mod
+	op: div  		dest: q 		type: int		args: ["a", "b"]	
+	op: mul  		dest: aq		type: int		args: ["b", "q"]	
+	op: sub  		dest: mod		type: int		args: ["a", "aq"]	
+	op: ret  		args: ["mod"]	
+@power
+	op: const		dest: ten		type: int		value: 10	
+	op: const		dest: zero		type: int		value: 0	
+	op: const		dest: one		type: int		value: 1	
+	op: const		dest: res		type: int		value: 1	
+.loop
+	op: eq   		dest: b 		type: bool		args: ["exp", "zero"]	
+	op: br   		args: ["b"]		labels: ["done", "body"]
+.body
+	op: mul  		dest: res		type: int		args: ["res", "base"]	
+	op: sub  		dest: exp		type: int		args: ["exp", "one"]	
+	op: jmp  		labels: ["loop"]
+.done
+	op: ret  		args: ["res"]	

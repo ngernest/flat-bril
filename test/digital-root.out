@@ -1,0 +1,35 @@
+@main
+	op: const		dest: zero		type: int		value: 0	
+	op: const		dest: ten		type: int		value: 10	
+	op: const		dest: result		type: int		value: 0	
+.begin
+	op: call 		dest: digit		type: int		args: ["input"]		funcs: ["peel_last_digit"]
+	op: div  		dest: input		type: int		args: ["input", "ten"]	
+	op: add  		dest: result		type: int		args: ["result", "digit"]	
+.check_result
+	op: print		args: ["result"]	
+	op: call 		dest: processed		type: bool		args: ["result"]		funcs: ["is_single_digit"]
+	op: br   		args: ["processed"]		labels: ["check_done", "process_result"]
+.process_result
+	op: call 		dest: r0		type: int		args: ["result"]		funcs: ["peel_last_digit"]
+	op: div  		dest: result		type: int		args: ["result", "ten"]	
+	op: add  		dest: result		type: int		args: ["result", "r0"]	
+	op: jmp  		labels: ["check_result"]
+.check_done
+	op: eq   		dest: done		type: bool		args: ["input", "zero"]	
+	op: br   		args: ["done"]		labels: ["done", "begin"]
+.done
+	op: print		args: ["result"]	
+@is_single_digit
+	op: const		dest: ten		type: int		value: 10	
+	op: const		dest: zero		type: int		value: 0	
+	op: div  		dest: divided		type: int		args: ["input", "ten"]	
+	op: mul  		dest: mul_by_ten		type: int		args: ["divided", "ten"]	
+	op: eq   		dest: result		type: bool		args: ["mul_by_ten", "zero"]	
+	op: ret  		args: ["result"]	
+@peel_last_digit
+	op: const		dest: ten		type: int		value: 10	
+	op: div  		dest: div_by_ten		type: int		args: ["input", "ten"]	
+	op: mul  		dest: mul_by_ten		type: int		args: ["div_by_ten", "ten"]	
+	op: sub  		dest: last_digit		type: int		args: ["input", "mul_by_ten"]	
+	op: ret  		args: ["last_digit"]	

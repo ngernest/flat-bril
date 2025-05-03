@@ -1,0 +1,44 @@
+@main
+	op: id   		dest: v1		type: int		args: ["n"]	
+	op: id   		dest: v2		type: int		args: ["n"]	
+	op: call 		dest: ans		type: int		args: ["v1", "v2"]		funcs: ["count_path"]
+	op: id   		dest: v3		type: int		args: ["ans"]	
+	op: print		args: ["v3"]	
+	op: const		dest: v4		type: int		value: 0	
+@count_path
+	op: id   		dest: v1		type: int		args: ["x"]	
+	op: const		dest: v2		type: int		value: 0	
+	op: eq   		dest: v3		type: bool		args: ["v1", "v2"]	
+	op: br   		args: ["v3"]		labels: ["then.0", "else.0"]
+.then.0
+	op: const		dest: v4		type: int		value: 1	
+	op: ret  		args: ["v4"]	
+.else.0
+	op: id   		dest: v6		type: int		args: ["y"]	
+	op: const		dest: v7		type: int		value: 0	
+	op: eq   		dest: v8		type: bool		args: ["v6", "v7"]	
+	op: br   		args: ["v8"]		labels: ["then.5", "else.5"]
+.then.5
+	op: const		dest: v9		type: int		value: 1	
+	op: ret  		args: ["v9"]	
+.else.5
+	op: id   		dest: v10		type: int		args: ["x"]	
+	op: const		dest: v11		type: int		value: 1	
+	op: sub  		dest: v12		type: int		args: ["v10", "v11"]	
+	op: id   		dest: v13		type: int		args: ["y"]	
+	op: call 		dest: v14		type: int		args: ["v12", "v13"]		funcs: ["count_path"]
+	op: id   		dest: v15		type: int		args: ["x"]	
+	op: id   		dest: v16		type: int		args: ["y"]	
+	op: const		dest: v17		type: int		value: 1	
+	op: sub  		dest: v18		type: int		args: ["v16", "v17"]	
+	op: call 		dest: v19		type: int		args: ["v15", "v18"]		funcs: ["count_path"]
+	op: add  		dest: v20		type: int		args: ["v14", "v19"]	
+	op: id   		dest: v21		type: int		args: ["x"]	
+	op: const		dest: v22		type: int		value: 1	
+	op: sub  		dest: v23		type: int		args: ["v21", "v22"]	
+	op: id   		dest: v24		type: int		args: ["y"]	
+	op: const		dest: v25		type: int		value: 1	
+	op: sub  		dest: v26		type: int		args: ["v24", "v25"]	
+	op: call 		dest: v27		type: int		args: ["v23", "v26"]		funcs: ["count_path"]
+	op: add  		dest: v28		type: int		args: ["v20", "v27"]	
+	op: ret  		args: ["v28"]	

@@ -1,0 +1,27 @@
+@main
+	op: call 		dest: catn		type: int		args: ["input"]		funcs: ["catalan"]
+	op: print		args: ["catn"]	
+@catalan
+	op: const		dest: one		type: int		value: 1	
+	op: const		dest: zero		type: int		value: 0	
+	op: eq   		dest: guard0		type: bool		args: ["n", "zero"]	
+	op: br   		args: ["guard0"]		labels: ["if", "else"]
+.if
+	op: ret  		args: ["one"]	
+.else
+	op: id   		dest: sum		type: int		args: ["zero"]	
+	op: id   		dest: idx		type: int		args: ["zero"]	
+	op: sub  		dest: n 		type: int		args: ["n", "one"]	
+.while
+	op: le   		dest: guard1		type: bool		args: ["idx", "n"]	
+	op: br   		args: ["guard1"]		labels: ["while.body", "while.end"]
+.while.body
+	op: sub  		dest: n2		type: int		args: ["n", "idx"]	
+	op: call 		dest: v1		type: int		args: ["idx"]		funcs: ["catalan"]
+	op: call 		dest: v2		type: int		args: ["n2"]		funcs: ["catalan"]
+	op: mul  		dest: elti		type: int		args: ["v1", "v2"]	
+	op: add  		dest: sum		type: int		args: ["sum", "elti"]	
+	op: add  		dest: idx		type: int		args: ["idx", "one"]	
+	op: jmp  		labels: ["while"]
+.while.end
+	op: ret  		args: ["sum"]	

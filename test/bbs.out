@@ -1,0 +1,28 @@
+@mod
+	op: div  		dest: result		type: int		args: ["n", "modulus"]	
+	op: mul  		dest: multiple		type: int		args: ["result", "modulus"]	
+	op: sub  		dest: remainder		type: int		args: ["n", "multiple"]	
+	op: ret  		args: ["remainder"]	
+@lsb
+	op: const		dest: two		type: int		value: 2	
+	op: call 		dest: bit		type: int		args: ["n", "two"]		funcs: ["mod"]
+	op: ret  		args: ["bit"]	
+@square
+	op: mul  		dest: result		type: int		args: ["n", "n"]	
+	op: ret  		args: ["result"]	
+@main
+	op: mul  		dest: modulus		type: int		args: ["p", "q"]	
+	op: const		dest: start		type: int		value: 0	
+	op: id   		dest: end		type: int		args: ["sequence_length"]	
+.loop.branch
+	op: lt   		dest: cond		type: bool		args: ["start", "end"]	
+	op: br   		args: ["cond"]		labels: ["loop.body", "loop.end"]
+.loop.body
+	op: call 		dest: squared		type: int		args: ["seed"]		funcs: ["square"]
+	op: call 		dest: seed		type: int		args: ["squared", "modulus"]		funcs: ["mod"]
+	op: call 		dest: least_significant_bit		type: int		args: ["seed"]		funcs: ["lsb"]
+	op: print		args: ["least_significant_bit"]	
+	op: const		dest: one		type: int		value: 1	
+	op: add  		dest: start		type: int		args: ["start", "one"]	
+	op: jmp  		labels: ["loop.branch"]
+.loop.end

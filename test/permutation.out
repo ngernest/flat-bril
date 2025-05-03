@@ -1,0 +1,48 @@
+@permutation
+	op: id   		dest: v1		type: int		args: ["k"]	
+	op: id   		dest: v2		type: int		args: ["n"]	
+	op: gt   		dest: v3		type: bool		args: ["v1", "v2"]	
+	op: br   		args: ["v3"]		labels: ["then.0", "else.0"]
+.then.0
+	op: const		dest: v4		type: int		value: 0	
+	op: ret  		args: ["v4"]	
+.else.0
+	op: id   		dest: v5		type: int		args: ["n"]	
+	op: call 		dest: v6		type: int		args: ["v5"]		funcs: ["factorial"]
+	op: id   		dest: v7		type: int		args: ["n"]	
+	op: id   		dest: v8		type: int		args: ["k"]	
+	op: sub  		dest: v9		type: int		args: ["v7", "v8"]	
+	op: call 		dest: v10		type: int		args: ["v9"]		funcs: ["factorial"]
+	op: div  		dest: v11		type: int		args: ["v6", "v10"]	
+	op: ret  		args: ["v11"]	
+@factorial
+	op: id   		dest: v1		type: int		args: ["n"]	
+	op: const		dest: v2		type: int		value: 1	
+	op: sub  		dest: v3		type: int		args: ["v1", "v2"]	
+	op: id   		dest: i 		type: int		args: ["v3"]	
+.for.cond.0
+	op: id   		dest: v4		type: int		args: ["i"]	
+	op: const		dest: v5		type: int		value: 0	
+	op: gt   		dest: v6		type: bool		args: ["v4", "v5"]	
+	op: br   		args: ["v6"]		labels: ["for.body.0", "for.end.0"]
+.for.body.0
+	op: id   		dest: v7		type: int		args: ["n"]	
+	op: id   		dest: v8		type: int		args: ["i"]	
+	op: mul  		dest: v9		type: int		args: ["v7", "v8"]	
+	op: id   		dest: n 		type: int		args: ["v9"]	
+	op: id   		dest: v10		type: int		args: ["i"]	
+	op: const		dest: v11		type: int		value: 1	
+	op: sub  		dest: v12		type: int		args: ["v10", "v11"]	
+	op: id   		dest: i 		type: int		args: ["v12"]	
+	op: jmp  		labels: ["for.cond.0"]
+.for.end.0
+	op: id   		dest: v13		type: int		args: ["n"]	
+	op: ret  		args: ["v13"]	
+@main
+	op: id   		dest: v0		type: int		args: ["n"]	
+	op: id   		dest: v1		type: int		args: ["k"]	
+	op: call 		dest: res		type: int		args: ["v0", "v1"]		funcs: ["permutation"]
+	op: id   		dest: res		type: int		args: ["res"]	
+	op: id   		dest: v2		type: int		args: ["res"]	
+	op: print		args: ["v2"]	
+	op: const		dest: v3		type: int		value: 0	

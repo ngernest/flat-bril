@@ -1,0 +1,73 @@
+@main
+	op: const		dest: v2		type: int		value: 1	
+	op: id   		dest: i 		type: int		args: ["v2"]	
+.for.cond.1
+	op: id   		dest: v3		type: int		args: ["i"]	
+	op: id   		dest: v4		type: int		args: ["n"]	
+	op: lt   		dest: v5		type: bool		args: ["v3", "v4"]	
+	op: br   		args: ["v5"]		labels: ["for.body.1", "for.end.1"]
+.for.body.1
+	op: id   		dest: v6		type: int		args: ["i"]	
+	op: call 		dest: isPrime		type: bool		args: ["v6"]		funcs: ["checkPrime"]
+	op: id   		dest: isPrime		type: bool		args: ["isPrime"]	
+	op: id   		dest: v8		type: bool		args: ["isPrime"]	
+	op: br   		args: ["v8"]		labels: ["then.7", "else.7"]
+.then.7
+	op: const		dest: v9		type: int		value: 1	
+	op: print		args: ["v9"]	
+	op: const		dest: v10		type: int		value: 0	
+	op: jmp  		labels: ["endif.7"]
+.else.7
+	op: const		dest: v11		type: int		value: 0	
+	op: print		args: ["v11"]	
+	op: const		dest: v12		type: int		value: 0	
+.endif.7
+	op: id   		dest: v13		type: int		args: ["i"]	
+	op: const		dest: v14		type: int		value: 1	
+	op: add  		dest: v15		type: int		args: ["v13", "v14"]	
+	op: id   		dest: i 		type: int		args: ["v15"]	
+	op: jmp  		labels: ["for.cond.1"]
+.for.end.1
+@checkPrime
+	op: id   		dest: v1		type: int		args: ["x"]	
+	op: const		dest: v2		type: int		value: 1	
+	op: le   		dest: v3		type: bool		args: ["v1", "v2"]	
+	op: br   		args: ["v3"]		labels: ["then.0", "else.0"]
+.then.0
+	op: const		dest: v4		type: bool		value: false	
+	op: ret  		args: ["v4"]	
+.else.0
+.endif.0
+	op: const		dest: v6		type: int		value: 2	
+	op: id   		dest: i 		type: int		args: ["v6"]	
+.for.cond.5
+	op: id   		dest: v7		type: int		args: ["i"]	
+	op: id   		dest: v8		type: int		args: ["x"]	
+	op: lt   		dest: v9		type: bool		args: ["v7", "v8"]	
+	op: br   		args: ["v9"]		labels: ["for.body.5", "for.end.5"]
+.for.body.5
+	op: id   		dest: v10		type: int		args: ["x"]	
+	op: id   		dest: v11		type: int		args: ["i"]	
+	op: div  		dest: v12		type: int		args: ["v10", "v11"]	
+	op: id   		dest: div		type: int		args: ["v12"]	
+	op: id   		dest: v13		type: int		args: ["div"]	
+	op: id   		dest: v14		type: int		args: ["i"]	
+	op: mul  		dest: v15		type: int		args: ["v13", "v14"]	
+	op: id   		dest: v16		type: int		args: ["x"]	
+	op: eq   		dest: v17		type: bool		args: ["v15", "v16"]	
+	op: id   		dest: isDivisible		type: bool		args: ["v17"]	
+	op: id   		dest: v19		type: bool		args: ["isDivisible"]	
+	op: br   		args: ["v19"]		labels: ["then.18", "else.18"]
+.then.18
+	op: const		dest: v20		type: bool		value: false	
+	op: ret  		args: ["v20"]	
+.else.18
+.endif.18
+	op: id   		dest: v21		type: int		args: ["i"]	
+	op: const		dest: v22		type: int		value: 1	
+	op: add  		dest: v23		type: int		args: ["v21", "v22"]	
+	op: id   		dest: i 		type: int		args: ["v23"]	
+	op: jmp  		labels: ["for.cond.5"]
+.for.end.5
+	op: const		dest: v24		type: bool		value: true	
+	op: ret  		args: ["v24"]	

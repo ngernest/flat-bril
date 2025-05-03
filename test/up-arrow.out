@@ -1,0 +1,24 @@
+@main
+	op: call 		dest: ans		type: int		args: ["n", "arrows", "repeats"]		funcs: ["up_arrow"]
+	op: print		args: ["ans"]	
+@up_arrow
+	op: const		dest: one		type: int		value: 1	
+	op: id   		dest: ans		type: int		args: ["num"]	
+	op: const		dest: i 		type: int		value: 1	
+.loopstart
+	op: lt   		dest: keepgoing		type: bool		args: ["i", "repeats"]	
+	op: br   		args: ["keepgoing"]		labels: ["loopbody", "endloop"]
+.loopbody
+	op: le   		dest: base_case		type: bool		args: ["arrows", "one"]	
+	op: br   		args: ["base_case"]		labels: ["base", "arrowsgreaterthan1"]
+.base
+	op: mul  		dest: ans		type: int		args: ["ans", "num"]	
+	op: jmp  		labels: ["finally"]
+.arrowsgreaterthan1
+	op: sub  		dest: new_arrows		type: int		args: ["arrows", "one"]	
+	op: call 		dest: ans		type: int		args: ["num", "new_arrows", "ans"]		funcs: ["up_arrow"]
+.finally
+	op: add  		dest: i 		type: int		args: ["i", "one"]	
+	op: jmp  		labels: ["loopstart"]
+.endloop
+	op: ret  		args: ["ans"]	

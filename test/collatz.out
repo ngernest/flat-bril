@@ -1,0 +1,24 @@
+@main
+	op: const		dest: one		type: int		value: 1	
+	op: const		dest: two		type: int		value: 2	
+	op: const		dest: three		type: int		value: 3	
+	op: jmp  		labels: ["print"]
+.cond
+	op: eq   		dest: eq_one		type: bool		args: ["x", "one"]	
+	op: br   		args: ["eq_one"]		labels: ["end", "loop"]
+.loop
+	op: div  		dest: half		type: int		args: ["x", "two"]	
+	op: mul  		dest: doublehalf		type: int		args: ["half", "two"]	
+	op: eq   		dest: even		type: bool		args: ["x", "doublehalf"]	
+	op: br   		args: ["even"]		labels: ["even", "odd"]
+.even
+	op: div  		dest: x 		type: int		args: ["x", "two"]	
+	op: jmp  		labels: ["print"]
+.odd
+	op: mul  		dest: x 		type: int		args: ["x", "three"]	
+	op: add  		dest: x 		type: int		args: ["x", "one"]	
+.print
+	op: print		args: ["x"]	
+	op: jmp  		labels: ["cond"]
+.end
+	op: ret  	

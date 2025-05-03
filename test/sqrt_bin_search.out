@@ -1,0 +1,45 @@
+@main
+	op: id   		dest: v0		type: int		args: ["min_guess"]	
+	op: const		dest: v1		type: int		value: 1	
+	op: add  		dest: v2		type: int		args: ["v0", "v1"]	
+	op: id   		dest: min_plus_1		type: int		args: ["v2"]	
+	op: id   		dest: v4		type: int		args: ["min_plus_1"]	
+	op: id   		dest: v5		type: int		args: ["max_guess"]	
+	op: eq   		dest: v6		type: bool		args: ["v4", "v5"]	
+	op: br   		args: ["v6"]		labels: ["then.3", "else.3"]
+.then.3
+	op: id   		dest: v7		type: int		args: ["min_guess"]	
+	op: print		args: ["v7"]	
+	op: const		dest: v8		type: int		value: 0	
+	op: ret  	
+.else.3
+	op: id   		dest: v9		type: int		args: ["min_guess"]	
+	op: id   		dest: v10		type: int		args: ["max_guess"]	
+	op: add  		dest: v11		type: int		args: ["v9", "v10"]	
+	op: id   		dest: sum_bounds		type: int		args: ["v11"]	
+	op: id   		dest: v12		type: int		args: ["sum_bounds"]	
+	op: const		dest: v13		type: int		value: 2	
+	op: div  		dest: v14		type: int		args: ["v12", "v13"]	
+	op: id   		dest: mid		type: int		args: ["v14"]	
+	op: id   		dest: v15		type: int		args: ["mid"]	
+	op: id   		dest: v16		type: int		args: ["mid"]	
+	op: mul  		dest: v17		type: int		args: ["v15", "v16"]	
+	op: id   		dest: mid_squared		type: int		args: ["v17"]	
+	op: id   		dest: v19		type: int		args: ["mid_squared"]	
+	op: id   		dest: v20		type: int		args: ["x"]	
+	op: le   		dest: v21		type: bool		args: ["v19", "v20"]	
+	op: br   		args: ["v21"]		labels: ["then.18", "else.18"]
+.then.18
+	op: id   		dest: v22		type: int		args: ["x"]	
+	op: id   		dest: v23		type: int		args: ["mid"]	
+	op: id   		dest: v24		type: int		args: ["max_guess"]	
+	op: call 		args: ["v22", "v23", "v24"]		funcs: ["main"]
+	op: const		dest: v25		type: int		value: 0	
+	op: jmp  		labels: ["endif.18"]
+.else.18
+	op: id   		dest: v26		type: int		args: ["x"]	
+	op: id   		dest: v27		type: int		args: ["min_guess"]	
+	op: id   		dest: v28		type: int		args: ["mid"]	
+	op: call 		args: ["v26", "v27", "v28"]		funcs: ["main"]
+	op: const		dest: v29		type: int		value: 0	
+.endif.18

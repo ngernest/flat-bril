@@ -1,0 +1,31 @@
+@main
+	op: id   		dest: n 		type: int		args: ["input"]	
+	op: const		dest: v0		type: int		value: 0	
+	op: const		dest: v1		type: int		value: 1	
+	op: const		dest: v2		type: int		value: 2	
+	op: id   		dest: sum		type: int		args: ["v1"]	
+	op: id   		dest: i 		type: int		args: ["v2"]	
+	op: id   		dest: result		type: int		args: ["v1"]	
+.for.cond.1
+	op: mul  		dest: ii		type: int		args: ["i", "i"]	
+	op: gt   		dest: comp		type: bool		args: ["ii", "n"]	
+	op: br   		args: ["comp"]		labels: ["for.end", "for.body"]
+.for.body
+	op: div  		dest: qut		type: int		args: ["n", "i"]	
+	op: mul  		dest: mpt		type: int		args: ["qut", "i"]	
+	op: sub  		dest: dif		type: int		args: ["n", "mpt"]	
+	op: eq   		dest: comp1		type: bool		args: ["dif", "v0"]	
+	op: br   		args: ["comp1"]		labels: ["if.body", "for.incre"]
+.if.body
+	op: add  		dest: sum		type: int		args: ["sum", "i"]	
+	op: add  		dest: sum		type: int		args: ["sum", "qut"]	
+.for.incre
+	op: add  		dest: i 		type: int		args: ["i", "v1"]	
+	op: jmp  		labels: ["for.cond.1"]
+.for.end
+	op: eq   		dest: comp2		type: bool		args: ["sum", "n"]	
+	op: br   		args: ["comp2"]		labels: ["if.success", "if.failure.end"]
+.if.success
+	op: id   		dest: result		type: int		args: ["v0"]	
+.if.failure.end
+	op: print		args: ["result"]	

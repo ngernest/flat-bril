@@ -1,0 +1,36 @@
+@main
+	op: const		dest: i 		type: int		value: 0	
+	op: const		dest: res		type: int		value: 0	
+	op: const		dest: one		type: int		value: 1	
+	op: const		dest: non		type: int		value: -1	
+	op: const		dest: zer		type: int		value: 0	
+	op: lt   		dest: nlz		type: bool		args: ["n", "zer"]	
+	op: br   		args: ["nlz"]		labels: ["neg", "begin"]
+.neg
+	op: mul  		dest: n 		type: int		args: ["n", "non"]	
+.begin
+	op: add  		dest: i 		type: int		args: ["i", "one"]	
+	op: mul  		dest: isq		type: int		args: ["i", "i"]	
+	op: gt   		dest: sqgt		type: bool		args: ["isq", "n"]	
+	op: br   		args: ["sqgt"]		labels: ["end", "check"]
+.check
+	op: call 		dest: m 		type: int		args: ["n", "i"]		funcs: ["mod"]
+	op: eq   		dest: eqz		type: bool		args: ["m", "zer"]	
+	op: br   		args: ["eqz"]		labels: ["body", "begin"]
+.body
+	op: print		args: ["i"]	
+	op: add  		dest: res		type: int		args: ["res", "i"]	
+	op: div  		dest: d 		type: int		args: ["n", "i"]	
+	op: eq   		dest: deqi		type: bool		args: ["d", "i"]	
+	op: br   		args: ["deqi"]		labels: ["begin", "then"]
+.then
+	op: print		args: ["d"]	
+	op: add  		dest: res		type: int		args: ["res", "d"]	
+	op: jmp  		labels: ["begin"]
+.end
+	op: print		args: ["res"]	
+@mod
+	op: div  		dest: quot		type: int		args: ["dividend", "divisor"]	
+	op: mul  		dest: prod		type: int		args: ["divisor", "quot"]	
+	op: sub  		dest: diff		type: int		args: ["dividend", "prod"]	
+	op: ret  		args: ["diff"]	
