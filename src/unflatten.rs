@@ -1,4 +1,5 @@
 use crate::types::*;
+use std::str;
 
 #[allow(unused_imports)]
 use serde_json::json;
@@ -10,7 +11,8 @@ use serde_json::json;
 /// Takes an `InstrStore` (flattened instrs + arrays storing args/dests etc.)
 /// corresponding to a Bril function and returns its JSON representation
 #[allow(dead_code)]
-pub fn unflatten_instrs<'a>(instr_store: &InstrStore) -> serde_json::Value {
+pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
+    let mut instr_json_vec = vec![];
     for instr in &instr_store.instrs {
         // Flag for tracking whether the instr is a value op or an effect op
         let mut is_value_op = true;
@@ -99,9 +101,6 @@ pub fn unflatten_instrs<'a>(instr_store: &InstrStore) -> serde_json::Value {
             .map(|label| str::from_utf8(label).expect("invalid utf-8"))
             .collect();
 
-        let dest_for_json =
-            str::from_utf8(dest.expect("missing dest")).expect("invalid utf-8");
-
         let mut funcs_for_json = vec![];
         if Option::is_some(&funcs) {
             let func_str = str::from_utf8(funcs.expect("missing funcs"))
@@ -110,8 +109,11 @@ pub fn unflatten_instrs<'a>(instr_store: &InstrStore) -> serde_json::Value {
         }
 
         // Build a JSON object corresponding to the flattened instruction
+        let instr_json;
         if is_value_op {
-            let _instr_json = serde_json::json!({
+            let dest_for_json = str::from_utf8(dest.expect("missing dest"))
+                .expect("invalid utf-8");
+            instr_json = serde_json::json!({
               "op": op_str,
               "dest": dest_for_json,
               "type": ty_str.expect("Expected string representing a type"),
@@ -121,14 +123,20 @@ pub fn unflatten_instrs<'a>(instr_store: &InstrStore) -> serde_json::Value {
               "funcs": funcs_for_json
             });
         } else {
-            let _instr_json = serde_json::json!({
+            instr_json = serde_json::json!({
               "op": op_str,
               "args": args,
               "labels": labels,
               "funcs": funcs
             });
         }
+        instr_json_vec.push(instr_json);
     }
 
-    todo!("actually return a list of JSON objects here")
+    let func_json: serde_json::Value = serde_json::json!({
+        "name": instr_store.func_name,
+        "args": null, // TODO: handle func args
+        "instrs": instr_json_vec
+    });
+    func_json
 }

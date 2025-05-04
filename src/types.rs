@@ -138,12 +138,15 @@ impl Opcode {
 
 /// Struct that stores all the instrs and the args/dest/labels/funcs arrays
 /// in the same place (note: we create one `InstrStore` per Bril function)
+/// - The `func_name` field stores the name of the Bril function
+///   corresponding to this `InstrStore`
 /// - args_idxes_stores |-> var_store
 /// - labels_idxes_store |-> labels_store
 /// - there's only one function so funcs_store can just be Vec<u8>
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct InstrStore {
+    pub func_name: Vec<u8>,
     pub var_store: Vec<u8>,
     pub args_idxes_store: Vec<(u32, u32)>,
     pub labels_idxes_store: Vec<(u32, u32)>,

@@ -34,10 +34,10 @@ pub fn flatten_instr_array_fields(
     let mut n: u32 = 0;
     for (i, var) in bytes_vec.iter().enumerate() {
         if i == 0 {
-            idxes_vec.push((0, var.len() as u32));
+            idxes_vec.push((0, (var.len() - 1) as u32));
             n = var.len() as u32;
         } else {
-            idxes_vec.push((n, n + var.len() as u32));
+            idxes_vec.push((n, n + (var.len() - 1) as u32));
             n += var.len() as u32;
         }
     }
@@ -63,7 +63,7 @@ pub fn flatten_instr_array_fields(
 /// Takes in a JSON function representing one single Bril function,
 /// and returns a vector containing the flattened instructions in the function
 /// (in the same order)
-pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
+pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
     // We reserve a buffer of size `NUM_ARGS` that contains
     // all the variables used in this function.
     // We also do the same for dests, labels and funcs.
@@ -90,7 +90,7 @@ pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
     let func_name = func_json["name"]
         .as_str()
         .expect("Expected `name` to be a string");
-    println!("@{func_name}");
+    let func_name_bytes: Vec<u8> = func_name.as_bytes().to_vec();
     let instrs = func_json["instrs"]
         .as_array()
         .expect("Expected `instrs` to be a JSON array");
@@ -126,7 +126,7 @@ pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
             if let Some(dest) = instr["dest"].as_str() {
                 dest_idx = Some((
                     all_vars.len() as u32,
-                    (all_vars.len() + dest.as_bytes().len()) as u32,
+                    (all_vars.len() + dest.as_bytes().len() - 1) as u32,
                 ));
                 all_vars.extend_from_slice(dest.as_bytes());
             }
@@ -170,7 +170,7 @@ pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
                 let func = funcs_vec.concat();
                 func_idx = Some((
                     all_funcs.len() as u32,
-                    (all_funcs.len() + func.len()) as u32,
+                    (all_funcs.len() + func.len() - 1) as u32,
                 ));
                 all_funcs.extend_from_slice(func.as_slice());
             }
@@ -187,15 +187,16 @@ pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
             all_instrs.push(instr);
         }
     }
-    // TODO: figure out what to do with _instr_store
-    // let _instr_store = InstrStore {
-    //     args_store: all_args,
-    //     dests_store: all_dests,
-    //     labels_store: all_labels,
-    //     funcs_store: all_funcs,
-    //     instrs: all_instrs.clone(),
-    // };
-    all_instrs
+    let instr_store = InstrStore {
+        func_name: func_name_bytes,
+        var_store: all_vars,
+        args_idxes_store: all_args_idxes,
+        labels_idxes_store: all_labels_idxes,
+        labels_store: all_labels,
+        funcs_store: all_funcs,
+        instrs: all_instrs,
+    };
+    instr_store
 }
 
 /* -------------------------------------------------------------------------- */
@@ -261,7 +262,7 @@ mod flatten_tests {
                 let functions = json["functions"]
                     .as_array()
                     .expect("Expected `functions` to be a JSON array");
-                let instrs: Vec<Instr> = flatten::create_instrs(&functions[0]);
+                let instrs: Vec<Instr> = flatten::flatten_instrs(&functions[0]);
                 for instr in instrs {
                     if let Some((args_start, args_end)) = instr.args {
                         assert!(

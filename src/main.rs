@@ -4,6 +4,7 @@ mod flatten;
 mod types;
 mod unflatten;
 
+#[allow(unused_variables)]
 fn main() {
     // Enable stack backtrace for debugging
     unsafe {
@@ -23,7 +24,8 @@ fn main() {
         .as_array()
         .expect("Expected `functions` to be a JSON array");
     for func in functions {
-        let _instrs = flatten::create_instrs(func);
-        // TODO: figure out what to do with _instrs
+        let instr_store = flatten::flatten_instrs(func);
+        let func_json = unflatten::unflatten_instrs(&instr_store);
+        println!("{func_json}");
     }
 }
