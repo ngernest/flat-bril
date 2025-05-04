@@ -204,7 +204,7 @@ mod flatten_tests {
     use std::io;
     use std::{fs, fs::File, io::BufReader};
 
-    use crate::types::{Instr, Opcode};
+    use crate::types::{InstrStore, Opcode};
 
     // We use `strum` to iterate over every variant in the `Opcode` enum easily
     use strum::IntoEnumIterator;
@@ -257,8 +257,9 @@ mod flatten_tests {
                 let functions = json["functions"]
                     .as_array()
                     .expect("Expected `functions` to be a JSON array");
-                let instrs: Vec<Instr> = flatten::flatten_instrs(&functions[0]);
-                for instr in instrs {
+                let instr_store: InstrStore =
+                    flatten::flatten_instrs(&functions[0]);
+                for instr in instr_store.instrs {
                     if let Some((args_start, args_end)) = instr.args {
                         assert!(
                             args_end >= args_start,
