@@ -23,9 +23,14 @@ fn main() {
     let functions = json["functions"]
         .as_array()
         .expect("Expected `functions` to be a JSON array");
+    let mut func_json_vec = vec![];
     for func in functions {
         let instr_store = flatten::flatten_instrs(func);
         let func_json = unflatten::unflatten_instrs(&instr_store);
-        println!("{func_json}");
+        func_json_vec.push(func_json);
     }
+    let prog_json = serde_json::json!({
+        "functions": func_json_vec
+    });
+    println!("{prog_json}");
 }

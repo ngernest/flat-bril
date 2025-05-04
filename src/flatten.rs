@@ -31,15 +31,10 @@ pub fn flatten_instr_array_fields(
     // of each variable in `bytes_vec` (this is necessary
     // since later on, we're concatenating all the byte slices tgt)
     let mut idxes_vec: Vec<(u32, u32)> = Vec::new();
-    let mut n: u32 = 0;
-    for (i, var) in bytes_vec.iter().enumerate() {
-        if i == 0 {
-            idxes_vec.push((0, (var.len() - 1) as u32));
-            n = var.len() as u32;
-        } else {
-            idxes_vec.push((n, n + (var.len() - 1) as u32));
-            n += var.len() as u32;
-        }
+    let mut n: u32 = buffer.len() as u32;
+    for var in bytes_vec.iter() {
+        idxes_vec.push((n, n + (var.len() - 1) as u32));
+        n += var.len() as u32;
     }
 
     // Compute the start & end indexes of all variables mentioned

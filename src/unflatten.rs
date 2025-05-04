@@ -23,17 +23,17 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
         }
 
         // Convert the `value` field in the `Instr` to a string
-        let mut val_str: Option<String> = None;
-        if let Some(val) = &instr.value {
-            match val {
-                BrilValue::BoolVal(b) => {
-                    val_str = Some(format!("{b}"));
-                }
-                BrilValue::IntVal(n) => {
-                    val_str = Some(format!("{n}"));
-                }
-            };
-        }
+        // let mut val_str: Option<String> = None;
+        // if let Some(val) = &instr.value {
+        //     match val {
+        //         BrilValue::BoolVal(b) => {
+        //             val_str = Some(format!("{b}"));
+        //         }
+        //         BrilValue::IntVal(n) => {
+        //             val_str = Some(format!("{n}"));
+        //         }
+        //     };
+        // }
 
         // Convert the `dest` index of the instr to an actual string
         // containing the dest
@@ -100,6 +100,20 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
                 .expect("invalid utf-8");
             funcs_for_json.push(func_str)
         }
+
+        // Convert the `BrilValue` to an `serde_json::Value`
+        let mut value_for_json: Option<serde_json::Value> = None;
+        if let Some(bril_value) = &instr.value {
+            match bril_value {
+                BrilValue::IntVal(i) => {
+                    value_for_json = Some(serde_json::to_value(i).unwrap());
+                }
+                BrilValue::BoolVal(b) => {
+                    value_for_json = Some(serde_json::to_value(b).unwrap());
+                }
+            }
+        }
+
         // Build a JSON object corresponding to the right instr kind
         let instr_kind = instr.get_instr_kind();
         let instr_json;
@@ -111,7 +125,7 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
                   "op": op_str,
                   "dest": dest_for_json,
                   "type": ty_str.expect("Expected string representing a type"),
-                  "value": val_str.expect("Expected value string"),
+                  "value": value_for_json.expect("Missing value"),
                 });
             }
             InstrKind::ValueOp => {
