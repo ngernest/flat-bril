@@ -4,6 +4,62 @@ use crate::types::*;
 /*                                 Actual code                                */
 /* -------------------------------------------------------------------------- */
 
+/// Takes in a vector of JSON values (representing variables / labels),
+/// a vector `global_idxes_vec` storing the start & end index of  
+/// the byte representation of each var in `buffer` (a byte sequence)
+/// Example:
+/// - json_vec = args_json_vec
+/// - global_idxes_vec = all_args_idxes
+/// - buffer = all_vars
+///
+/// - json_vec = labels_json_vec
+/// - global_idxes_vec = all_labels_idxes
+/// - buffer = all_labels
+pub fn flatten_instr_array_fields(
+    json_vec: &Vec<serde_json::Value>,
+    global_idxes_vec: &mut Vec<(u32, u32)>,
+    buffer: &mut Vec<u8>,
+) -> (u32, u32) {
+    // Convert each JSON string in `json_vec` into a
+    // `&[u8]` byte slice
+    let bytes_vec: Vec<&[u8]> = json_vec
+        .iter()
+        .map(|v| v.as_str().unwrap().as_bytes())
+        .collect();
+
+    // `idxes_vec` stores the start & end indexes
+    // of each variable in `bytes_vec` (this is necessary
+    // since later on, we're concatenating all the byte slices tgt)
+    let mut idxes_vec: Vec<(u32, u32)> = Vec::new();
+    let mut n: u32 = 0;
+    for (i, var) in bytes_vec.iter().enumerate() {
+        if i == 0 {
+            idxes_vec.push((0, var.len() as u32));
+            n = var.len() as u32;
+        } else {
+            idxes_vec.push((n, n + var.len() as u32));
+            n += var.len() as u32;
+        }
+    }
+
+    // Compute the start & end indexes of all variables mentioned
+    // by this instruction in `idxes-vec`
+    let start_idx = global_idxes_vec.len();
+    global_idxes_vec.extend_from_slice(idxes_vec.as_slice());
+    let end_idx = global_idxes_vec.len() - 1;
+    let var_idxes = (start_idx as u32, end_idx as u32);
+
+    // Concatenate all the `&[u8]`s in `bytes_vec` into
+    // one single vector of bytes
+    let vars_vec: Vec<u8> = bytes_vec.concat();
+
+    // Extend the global bytes vector of vars with the vec of
+    // bytes that we just cretaed
+    buffer.extend_from_slice(vars_vec.as_slice());
+
+    var_idxes
+}
+
 /// Takes in a JSON function representing one single Bril function,
 /// and returns a vector containing the flattened instructions in the function
 /// (in the same order)
@@ -16,10 +72,20 @@ pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
     // these vectors in the future?
     // (these are specialized short vectors which minimize heap allocations)
     // ^^ we should only switch to these after benchmarking the current impl tho
-    let mut all_args: Vec<&str> = Vec::with_capacity(NUM_ARGS);
-    let mut all_dests: Vec<&str> = Vec::with_capacity(NUM_DESTS);
-    let mut all_labels: Vec<&str> = Vec::with_capacity(NUM_LABELS);
-    let mut all_funcs: Vec<&str> = Vec::with_capacity(NUM_FUNCS);
+
+    // `all_vars` is a vec storing the byte representation of all variables
+    // that we encounter (the bytes of all the variables are concatenated
+    // together into one long byte sequence)
+    let mut all_vars: Vec<u8> = Vec::with_capacity(NUM_VARS * 2);
+
+    // `all_args_idxes` stores the start & end indexes of each arg in `all_vars`
+    let mut all_args_idxes: Vec<(u32, u32)> = Vec::with_capacity(NUM_ARGS);
+
+    // `all_labels_idxes` stores the start & end indexes of each label in `all_labels`
+    let mut all_labels: Vec<u8> = Vec::with_capacity(NUM_LABELS * 5);
+    let mut all_labels_idxes: Vec<(u32, u32)> = Vec::with_capacity(NUM_LABELS);
+
+    let mut all_funcs: Vec<u8> = Vec::with_capacity(NUM_FUNCS);
 
     let func_name = func_json["name"]
         .as_str()
@@ -43,24 +109,26 @@ pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
                 .expect("Invalid opcode");
             let opcode_idx = opcode.get_index() as u32;
 
-            // Obtain the start/end indexes of the args,
+            // Obtain the start/end indexes into the all_args_idxes Vec
             // (used to populate the `args` field of the `Instr` struct)
             let mut arg_idxes = None;
             if let Some(args_json_vec) = instr["args"].as_array() {
-                let args_vec: Vec<&str> =
-                    args_json_vec.iter().map(|v| v.as_str().unwrap()).collect();
-                let args_slice = args_vec.as_slice();
-                let start_idx = all_args.len();
-                all_args.extend_from_slice(args_slice);
-                let end_idx = all_args.len() - 1;
-                arg_idxes = Some((start_idx as u32, end_idx as u32));
+                let (start_idx, end_idx) = flatten_instr_array_fields(
+                    args_json_vec,
+                    &mut all_args_idxes,
+                    &mut all_vars,
+                );
+                arg_idxes = Some((start_idx, end_idx))
             }
 
             // Populate the `dest` field of the `Instr` struct
             let mut dest_idx = None;
             if let Some(dest) = instr["dest"].as_str() {
-                dest_idx = Some(all_dests.len() as u32);
-                all_dests.push(dest);
+                dest_idx = Some((
+                    all_vars.len() as u32,
+                    (all_vars.len() + dest.as_bytes().len()) as u32,
+                ));
+                all_vars.extend_from_slice(dest.as_bytes());
             }
 
             // Populate the `ty` field of the `Instr` struct
@@ -82,27 +150,29 @@ pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
             // Populate the `labels` field of the `Instr` struct
             let mut labels_idxes = None;
             if let Some(labels_json_vec) = instr["labels"].as_array() {
-                let labels_vec: Vec<&str> = labels_json_vec
-                    .iter()
-                    .map(|v| v.as_str().unwrap())
-                    .collect();
-                let start_idx = all_labels.len();
-                all_labels.extend(labels_vec);
-                let end_idx = all_labels.len() - 1;
-                labels_idxes = Some((start_idx as u32, end_idx as u32));
+                let (start_idx, end_idx) = flatten_instr_array_fields(
+                    labels_json_vec,
+                    &mut all_labels_idxes,
+                    &mut all_labels,
+                );
+                labels_idxes = Some((start_idx, end_idx));
             }
 
             // Handle `func` field in `Instr` struct
-            let mut funcs_idxes = None;
+            // Because we only handle core Bril we assume only one func is referenced
+            let mut func_idx = None;
             if let Some(funcs_json_vec) = instr["funcs"].as_array() {
-                let funcs_vec: Vec<&str> = funcs_json_vec
+                let funcs_vec: Vec<&[u8]> = funcs_json_vec
                     .iter()
-                    .map(|v| v.as_str().unwrap())
+                    .map(|v| v.as_str().unwrap().as_bytes())
                     .collect();
-                let start_idx = all_funcs.len();
-                all_funcs.extend(funcs_vec);
-                let end_idx = all_funcs.len() - 1;
-                funcs_idxes = Some((start_idx as u32, end_idx as u32));
+                assert!(funcs_vec.len() == 1);
+                let func = funcs_vec.concat();
+                func_idx = Some((
+                    all_funcs.len() as u32,
+                    (all_funcs.len() + func.len()) as u32,
+                ));
+                all_funcs.extend_from_slice(func.as_slice());
             }
 
             let instr = Instr {
@@ -112,20 +182,19 @@ pub fn create_instrs(func_json: &serde_json::Value) -> Vec<Instr> {
                 ty,
                 labels: labels_idxes,
                 value,
-                funcs: funcs_idxes,
+                funcs: func_idx,
             };
-            print_instr(&instr, &all_args, &all_dests, &all_labels, &all_funcs);
             all_instrs.push(instr);
         }
     }
     // TODO: figure out what to do with _instr_store
-    let _instr_store = InstrStore {
-        args_store: all_args,
-        dests_store: all_dests,
-        labels_store: all_labels,
-        funcs_store: all_funcs,
-        instrs: all_instrs.clone(),
-    };
+    // let _instr_store = InstrStore {
+    //     args_store: all_args,
+    //     dests_store: all_dests,
+    //     labels_store: all_labels,
+    //     funcs_store: all_funcs,
+    //     instrs: all_instrs.clone(),
+    // };
     all_instrs
 }
 

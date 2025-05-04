@@ -12,17 +12,20 @@ use strum_macros::EnumIter;
 /// - The `op` field stores an index `i` into `OPCODE_IDX`, where
 ///   `OPCODE_IDX[i] = (start, end)`, such that `OPCODE_BUFFER[start..=end]`
 ///   is the serialized version of the opcode
-/// - Similarly, `dest` field is an index into the `all_dests` array
 /// - We can store the actual `type` and `value` inline in the `Instr` struct
 ///   (since they're either an int or a bool,
 ///   i.e. they don't need to be heap-allocated)
-/// - `args` and `labels` contain the start and end indices (inclusive)
-///   of the relevant elements in their respective arrays
-///   (Well-formedness condition: we must have end_idx >= start_idx always
-///   for the `args` and `labels` fields)
+/// - `dest` stores the start & end indices (inclusive) of the byte representation
+///    of the string in the `all_vars` byte vector (see `flatten.rs`)
+/// - `args` and `labels` contains the start & end indices (inclusive)
+///   in their index vectors (see `all_args_idxes` & `all_labels_idxes` in `flatten.rs`)
+/// - For `args` and `labels` we have 2 layers of indirection since
+///   an instruction can have multiple args/labels, so
+///   `(start, end) = instr.arg ==> all_args_idxes[start..=end] ==> all_vars[...]`
+/// - (Well-formedness condition: we must have end_idx >= start_idx always)
 pub struct Instr {
     pub op: u32,
-    pub dest: Option<u32>,
+    pub dest: Option<(u32, u32)>,
     pub ty: Option<Type>,
     pub value: Option<BrilValue>,
     pub args: Option<(u32, u32)>,
@@ -61,28 +64,6 @@ impl Instr {
             args: None,
             labels: None,
             funcs: None,
-        }
-    }
-
-    /// Creates a new `Instr` struct with all fields populated according
-    /// to the arguments supplied to this function
-    pub fn new(
-        op: u32,
-        dest: Option<u32>,
-        ty: Option<Type>,
-        value: Option<BrilValue>,
-        args: Option<(u32, u32)>,
-        labels: Option<(u32, u32)>,
-        funcs: Option<(u32, u32)>,
-    ) -> Self {
-        Instr {
-            op,
-            dest,
-            ty,
-            value,
-            args,
-            labels,
-            funcs,
         }
     }
 }
@@ -157,13 +138,17 @@ impl Opcode {
 
 /// Struct that stores all the instrs and the args/dest/labels/funcs arrays
 /// in the same place (note: we create one `InstrStore` per Bril function)
+/// - args_idxes_stores |-> var_store
+/// - labels_idxes_store |-> labels_store
+/// - there's only one function so funcs_store can just be Vec<u8>
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct InstrStore<'a> {
-    pub args_store: Vec<&'a str>,
-    pub dests_store: Vec<&'a str>,
-    pub labels_store: Vec<&'a str>,
-    pub funcs_store: Vec<&'a str>,
+pub struct InstrStore {
+    pub var_store: Vec<u8>,
+    pub args_idxes_store: Vec<(u32, u32)>,
+    pub labels_idxes_store: Vec<(u32, u32)>,
+    pub labels_store: Vec<u8>,
+    pub funcs_store: Vec<u8>,
     pub instrs: Vec<Instr>,
 }
 
@@ -185,8 +170,10 @@ pub const NUM_OPCODES: usize = 20;
 /// variables in a Bril function)
 pub const NUM_ARGS: usize = 64;
 
+/// Variables are just a way to interpret dests/args, we assume there are 128 of them
+pub const NUM_VARS: usize = 128;
+
 /// Similarly, we assume that Bril programs contain at most 128 dests/labels/instrs
-pub const NUM_DESTS: usize = 128;
 pub const NUM_LABELS: usize = 128;
 pub const NUM_INSTRS: usize = 128;
 
@@ -224,81 +211,81 @@ pub const OPCODE_IDX: [(usize, usize); NUM_OPCODES] = [
 /*                               Pretty-Printing                              */
 /* -------------------------------------------------------------------------- */
 
-/// Pretty-prints an `Instr`, using the indexes in the `Instr` struct to fetch
-/// the appropriate elements in the other argument slices.   
-/// Note: via the magic of deref coercion, we can just pass in references to
-/// vectors (i.e. `&Vec<&str>`'s) as arguments to this function,
-/// and Rust will automatically convert them to `&[&str]`!
-pub fn print_instr(
-    instr: &Instr,
-    args: &[&str],
-    dests: &[&str],
-    labels: &[&str],
-    funcs: &[&str],
-) {
-    // Look up the actual Opcode corresponding to the op index in the struct
-    let (start_idx, end_idx) = OPCODE_IDX[instr.op as usize];
-    let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
-    print!("\top: {:5}\t", op_str);
+// /// Pretty-prints an `Instr`, using the indexes in the `Instr` struct to fetch
+// /// the appropriate elements in the other argument slices.
+// /// Note: via the magic of deref coercion, we can just pass in references to
+// /// vectors (i.e. `&Vec<&str>`'s) as arguments to this function,
+// /// and Rust will automatically convert them to `&[&str]`!
+// pub fn print_instr(
+//     instr: &Instr,
+//     args: &[&str],
+//     dests: &[&str],
+//     labels: &[&str],
+//     funcs: &[&str],
+// ) {
+//     // Look up the actual Opcode corresponding to the op index in the struct
+//     let (start_idx, end_idx) = OPCODE_IDX[instr.op as usize];
+//     let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
+//     print!("\top: {:5}\t", op_str);
 
-    if let Some(dest_idx) = &instr.dest {
-        print!("\tdest: {:2}\t", dests[*dest_idx as usize]);
-    }
+//     if let Some(dest_idx) = &instr.dest {
+//         print!("\tdest: {:2}\t", dests[*dest_idx as usize]);
+//     }
 
-    if let Some(ty) = &instr.ty {
-        print!("\ttype: {:5}\t", ty);
-    }
-    if let Some(value) = &instr.value {
-        print!("\tvalue: {:5}\t", value);
-    }
+//     if let Some(ty) = &instr.ty {
+//         print!("\ttype: {:5}\t", ty);
+//     }
+//     if let Some(value) = &instr.value {
+//         print!("\tvalue: {:5}\t", value);
+//     }
 
-    if let Some((args_start, args_end)) = &instr.args {
-        let args_start = *args_start as usize;
-        let args_end = *args_end as usize;
-        print!("\targs: {:?}\t", &args[args_start..=args_end]);
-    }
-    if let Some((labels_start, labels_end)) = &instr.labels {
-        let labels_start = *labels_start as usize;
-        let labels_end = *labels_end as usize;
-        print!("\tlabels: {:?}", &labels[labels_start..=labels_end]);
-    }
-    if let Some((funcs_start, funcs_end)) = &instr.funcs {
-        let funcs_start = *funcs_start as usize;
-        let funcs_end = *funcs_end as usize;
-        print!("\tfuncs: {:?}", &funcs[funcs_start..=funcs_end]);
-    }
+//     if let Some((args_start, args_end)) = &instr.args {
+//         let args_start = *args_start as usize;
+//         let args_end = *args_end as usize;
+//         print!("\targs: {:?}\t", &args[args_start..=args_end]);
+//     }
+//     if let Some((labels_start, labels_end)) = &instr.labels {
+//         let labels_start = *labels_start as usize;
+//         let labels_end = *labels_end as usize;
+//         print!("\tlabels: {:?}", &labels[labels_start..=labels_end]);
+//     }
+//     if let Some((funcs_start, funcs_end)) = &instr.funcs {
+//         let funcs_start = *funcs_start as usize;
+//         let funcs_end = *funcs_end as usize;
+//         print!("\tfuncs: {:?}", &funcs[funcs_start..=funcs_end]);
+//     }
 
-    println!();
-}
+//     println!();
+// }
 
 /// Note: prefer the `print_instr` function above over the implementation of
 /// the `Display` trait for `Instr`, since the former actually prints out
 /// what the concrete values are for each field in the `Instr`
 /// (the `Display` trait just prints out the indexes, not the actual values)
-impl fmt::Display for Instr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Look up the actual Opcode corresponding to the op index in the struct
-        let (start_idx, end_idx) = OPCODE_IDX[self.op as usize];
-        let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
-        write!(f, "op: {:5}\t", op_str)?;
-        if let Some(dest) = &self.dest {
-            write!(f, "dest: {:2}\t", dest)?;
-        }
-        if let Some(ty) = &self.ty {
-            write!(f, "type: {:5}\t", ty)?;
-        }
-        if let Some(value) = &self.value {
-            write!(f, "value: {:5}\t", value)?;
-        }
-        if let Some(args) = &self.args {
-            write!(f, "args: {:?}\t", args)?;
-        }
-        if let Some(labels) = &self.labels {
-            write!(f, "labels: {:?}", labels)?;
-        }
-        Ok(())
-    }
-}
+// impl fmt::Display for Instr {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         // Look up the actual Opcode corresponding to the op index in the struct
+//         let (start_idx, end_idx) = OPCODE_IDX[self.op as usize];
+//         let op_str = &OPCODE_BUFFER[start_idx..=end_idx];
+//         write!(f, "op: {:5}\t", op_str)?;
+//         if let Some(dest) = &self.dest {
+//             write!(f, "dest: {:2}\t", dest)?;
+//         }
+//         if let Some(ty) = &self.ty {
+//             write!(f, "type: {:5}\t", ty)?;
+//         }
+//         if let Some(value) = &self.value {
+//             write!(f, "value: {:5}\t", value)?;
+//         }
+//         if let Some(args) = &self.args {
+//             write!(f, "args: {:?}\t", args)?;
+//         }
+//         if let Some(labels) = &self.labels {
+//             write!(f, "labels: {:?}", labels)?;
+//         }
+//         Ok(())
+//     }
+// }
 
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
