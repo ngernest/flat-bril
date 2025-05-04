@@ -3,6 +3,7 @@ use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use strum_macros::EnumIter;
+use zerocopy::IntoBytes;
 
 /* -------------------------------------------------------------------------- */
 /*                                    Types                                   */
@@ -35,6 +36,29 @@ pub struct Instr {
     pub funcs: Option<(u32, u32)>,
 }
 
+/// Struct representation of the pair `(i32, i32)`
+/// (we need this b/c `zerocopy` doesn't work for tuples)
+#[repr(C)]
+#[derive(Debug, Clone, IntoBytes)]
+pub struct I32Pair {
+    pub first: i32,
+    pub second: i32,
+}
+
+/// Flattened representation of an instruction, amenable to `zerocopy`
+#[allow(dead_code)]
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct FlatInstr {
+    pub op: i32,
+    pub dest: I32Pair,
+    pub args: I32Pair,
+    pub labels: I32Pair,
+    pub funcs: I32Pair,
+    pub ty: Type,
+    pub value: BrilValue,
+}
+
 #[derive(Debug, Clone)]
 pub enum InstrKind {
     Const,
@@ -43,21 +67,26 @@ pub enum InstrKind {
 }
 
 /// Primitive types in core Bril are either `int` or `bool`
-#[derive(Debug, PartialEq, Clone, Deserialize)]
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Deserialize, IntoBytes)]
 #[serde(rename_all = "lowercase")]
 pub enum Type {
     Int,
     Bool,
+    Null,
 }
 
 /// Bril values are either 64-bit integers or bools.   
 /// Note: We call this enum `BrilValue` to avoid namespace clashes
 /// with `serde_json::Value`
-#[derive(Debug, PartialEq, Clone)]
+/// - The `Null` constructor is only used for flattening
+///   (to indicate the absence of a value)
 #[allow(dead_code)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum BrilValue {
     IntVal(i64),
     BoolVal(bool),
+    Null,
 }
 
 #[allow(dead_code)]
@@ -353,6 +382,7 @@ impl fmt::Display for Type {
         match self {
             Type::Int => write!(f, "int"),
             Type::Bool => write!(f, "bool"),
+            Type::Null => write!(f, "null"),
         }
     }
 }
@@ -363,6 +393,7 @@ impl Type {
         match self {
             Type::Int => "int",
             Type::Bool => "bool",
+            Type::Null => "null",
         }
     }
 }
@@ -372,6 +403,7 @@ impl fmt::Display for BrilValue {
         match self {
             BrilValue::IntVal(n) => write!(f, "{}", n),
             BrilValue::BoolVal(b) => write!(f, "{}", b),
+            BrilValue::Null => write!(f, "null"),
         }
     }
 }

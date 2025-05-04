@@ -111,6 +111,7 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
                 BrilValue::BoolVal(b) => {
                     value_for_json = Some(serde_json::to_value(b).unwrap());
                 }
+                BrilValue::Null => (),
             }
         }
 
