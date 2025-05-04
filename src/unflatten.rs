@@ -14,9 +14,6 @@ use serde_json::json;
 pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
     let mut instr_json_vec = vec![];
     for instr in &instr_store.instrs {
-        // Flag for tracking whether the instr is a value op or an effect op
-        let mut is_value_op = true;
-
         let op_str = Opcode::op_idx_to_op_str(instr.op as usize);
 
         // Extract the `ty` field of the instr as a string
@@ -45,10 +42,6 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
             let start_idx = start_idx as usize;
             let end_idx = end_idx as usize;
             dest = Some(&instr_store.var_store[start_idx..=end_idx]);
-        } else {
-            // There is no `dest` field,
-            // so the instr is an effect op (not a value op)
-            is_value_op = false;
         }
 
         // Convert the (start_idx, end_idx) for args in the instr to
@@ -107,34 +100,50 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
                 .expect("invalid utf-8");
             funcs_for_json.push(func_str)
         }
-
-        // Build a JSON object corresponding to the flattened instruction
+        // Build a JSON object corresponding to the right instr kind
+        let instr_kind = instr.get_instr_kind();
         let instr_json;
-        if is_value_op {
-            let dest_for_json = str::from_utf8(dest.expect("missing dest"))
-                .expect("invalid utf-8");
-            instr_json = serde_json::json!({
-              "op": op_str,
-              "dest": dest_for_json,
-              "type": ty_str.expect("Expected string representing a type"),
-              "value": val_str.expect("Expected value string"),
-              "args": args_for_json,
-              "labels": labels_for_json,
-              "funcs": funcs_for_json
-            });
-        } else {
-            instr_json = serde_json::json!({
-              "op": op_str,
-              "args": args,
-              "labels": labels,
-              "funcs": funcs
-            });
-        }
+        match instr_kind {
+            InstrKind::Const => {
+                let dest_for_json = str::from_utf8(dest.expect("missing dest"))
+                    .expect("invalid utf-8");
+                instr_json = serde_json::json!({
+                  "op": op_str,
+                  "dest": dest_for_json,
+                  "type": ty_str.expect("Expected string representing a type"),
+                  "value": val_str.expect("Expected value string"),
+                });
+            }
+            InstrKind::ValueOp => {
+                let dest_for_json = str::from_utf8(dest.expect("missing dest"))
+                    .expect("invalid utf-8");
+                instr_json = serde_json::json!({
+                  "op": op_str,
+                  "dest": dest_for_json,
+                  "type": ty_str.expect("Expected string representing a type"),
+                  "args": args_for_json,
+                  "labels": labels_for_json,
+                  "funcs": funcs_for_json
+                });
+            }
+            InstrKind::EffectOp => {
+                instr_json = serde_json::json!({
+                  "op": op_str,
+                  "args": args_for_json,
+                  "labels": labels_for_json,
+                  "funcs": funcs_for_json
+                });
+            }
+        };
+
         instr_json_vec.push(instr_json);
     }
 
+    let func_name =
+        str::from_utf8(&instr_store.func_name).expect("invalid utf-8");
+
     let func_json: serde_json::Value = serde_json::json!({
-        "name": instr_store.func_name,
+        "name": func_name,
         "args": null, // TODO: handle func args
         "instrs": instr_json_vec
     });

@@ -1,3 +1,5 @@
+use core::panic;
+use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use strum_macros::EnumIter;
@@ -33,6 +35,13 @@ pub struct Instr {
     pub funcs: Option<(u32, u32)>,
 }
 
+#[derive(Debug, Clone)]
+pub enum InstrKind {
+    Const,
+    ValueOp,
+    EffectOp,
+}
+
 /// Primitive types in core Bril are either `int` or `bool`
 #[derive(Debug, PartialEq, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -53,22 +62,30 @@ pub enum BrilValue {
 
 #[allow(dead_code)]
 impl Instr {
-    /// Creates a new `Instr` struct with the `op` field set to `opcode_idx`,
-    /// and all other fields initialized to `None`
-    pub fn init(opcode_idx: u32) -> Self {
-        Instr {
-            op: opcode_idx,
-            dest: None,
-            ty: None,
-            value: None,
-            args: None,
-            labels: None,
-            funcs: None,
+    pub fn get_instr_kind(&self) -> InstrKind {
+        use Opcode::*;
+        let op = Opcode::u32_to_opcode(self.op);
+        match op {
+            Const => InstrKind::Const,
+            Print | Jmp | Br | Ret => InstrKind::EffectOp,
+            Call => {
+                // Function calls can be both value op and effect op
+                // depending on whether the `dest` field of the instr
+                // is present
+                if let Some((_, _)) = self.dest {
+                    InstrKind::ValueOp
+                } else {
+                    InstrKind::EffectOp
+                }
+            }
+            _ => InstrKind::ValueOp,
         }
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Deserialize, Serialize, EnumIter)]
+#[derive(
+    Debug, PartialEq, Clone, Deserialize, Serialize, EnumIter, FromPrimitive,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum Opcode {
     // Arithmetic
@@ -103,6 +120,47 @@ pub enum Opcode {
 }
 
 impl Opcode {
+    /// Converts a `u32` value to the corresponding `Opcode`
+    /// - Panics if the `u32` value can't be converted
+    pub fn u32_to_opcode(v: u32) -> Self {
+        let possible_op: Option<Opcode> =
+            num_traits::FromPrimitive::from_u32(v);
+        use Opcode::*;
+        match possible_op {
+            // Arithmetic
+            Some(Add) => Add,
+            Some(Mul) => Mul,
+            Some(Sub) => Sub,
+            Some(Div) => Div,
+
+            // Comparison
+            Some(Eq) => Eq,
+            Some(Lt) => Lt,
+            Some(Gt) => Gt,
+            Some(Le) => Le,
+            Some(Ge) => Ge,
+
+            // Logic operations
+            Some(Not) => Not,
+            Some(And) => And,
+            Some(Or) => Or,
+
+            // Control flow
+            Some(Jmp) => Jmp,
+            Some(Br) => Br,
+            Some(Call) => Call,
+            Some(Ret) => Ret,
+
+            // Misc operations
+            Some(Id) => Id,
+            Some(Print) => Print,
+            Some(Nop) => Nop,
+            Some(Const) => Const,
+
+            None => panic!("Couldn't convert {} to an opcode", v),
+        }
+    }
+
     /// Returns the `(start idx, end idx)` of the opcode in the `OPCODES` buffer
     pub fn get_buffer_start_end_indexes(&self) -> (usize, usize) {
         let opcode = self.clone();
