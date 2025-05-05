@@ -1,2 +1,6 @@
 [envs.print]
 command = "bril2json < {filename} | cargo run"
+
+[envs.roundtrip]
+command = "bril2json < {filename} | cargo run | brili {args}"
+output.roundtrip = "-"

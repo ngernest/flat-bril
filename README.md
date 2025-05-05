@@ -18,6 +18,7 @@ This outputs:
 ```
 
 - Run `cargo test` to run unit tests
+- Run `turnt -e roundtrip test/*.bril` to check whether `brili` returns the same output after a JSON -> flattened format -> JSON round trip
 
 Repo structure:
 - [`main.rs`](./src/main.rs): Reads in a JSON Bril file from `stdin`
