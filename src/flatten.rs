@@ -90,13 +90,16 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
         .as_array()
         .expect("Expected `instrs` to be a JSON array");
 
-    // `all_instrs` is a temporary vec that stores all the `Instr` structs
-    // that we create (we'll convert this vec to a slice after the loop below)
-    let mut all_instrs: Vec<Instr> = Vec::with_capacity(NUM_INSTRS);
+    // `all_instrs_labels` is a temporary vec that stores all the `Instr`s
+    // and labels that we encounter (in the order they appear in the Bril file)
+    let mut all_instrs_labels: Vec<InstrOrLabel> =
+        Vec::with_capacity(NUM_INSTRS);
 
     for instr in instrs {
-        if let Some(_) = instr["label"].as_str() {
+        if let Some(_label) = instr["label"].as_str() {
             // Instruction is a label, doesn't have an opcode
+            // TODO: need to figure out how to look-up `_label` in either
+            // `all_labels` in order to fetch `all_labels_idxes`
             continue;
         } else {
             let opcode: Opcode = serde_json::from_value(instr["op"].clone())
@@ -178,7 +181,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
                 value,
                 funcs: func_idx,
             };
-            all_instrs.push(instr);
+            all_instrs_labels.push(InstrOrLabel::Instr(instr));
         }
     }
     let instr_store = InstrStore {
@@ -188,7 +191,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
         labels_idxes_store: all_labels_idxes,
         labels_store: all_labels,
         funcs_store: all_funcs,
-        instrs: all_instrs,
+        instrs_and_labels: all_instrs_labels,
     };
     instr_store
 }
@@ -258,7 +261,7 @@ mod flatten_tests {
                     .expect("Expected `functions` to be a JSON array");
                 let instr_store: InstrStore =
                     flatten::flatten_instrs(&functions[0]);
-                for instr in instr_store.instrs {
+                for instr in instr_store.instrs_and_labels {
                     if let Some((args_start, args_end)) = instr.args {
                         assert!(
                             args_end >= args_start,

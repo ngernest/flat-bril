@@ -36,6 +36,17 @@ pub struct Instr {
     pub funcs: Option<(u32, u32)>,
 }
 
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Clone)]
+/// A type that represents an "item" that we encounter in a Bril file,
+/// where an item is either an instruction `Instr` or a `Label` (represented
+/// by the start & end indices of the label in the global
+/// labels byte sequence)
+pub enum InstrOrLabel {
+    Instr(Instr),
+    Label((u32, u32)),
+}
+
 /// Struct representation of the pair `(i32, i32)`
 /// (we need this b/c `zerocopy` doesn't work for tuples)
 #[repr(C)]
@@ -239,7 +250,7 @@ pub struct InstrStore {
     pub labels_idxes_store: Vec<(u32, u32)>,
     pub labels_store: Vec<u8>,
     pub funcs_store: Vec<u8>,
-    pub instrs: Vec<Instr>,
+    pub instrs_and_labels: Vec<InstrOrLabel>,
 }
 
 /* -------------------------------------------------------------------------- */
