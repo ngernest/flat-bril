@@ -95,9 +95,8 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
     let mut all_instrs: Vec<Instr> = Vec::with_capacity(NUM_INSTRS);
 
     for instr in instrs {
-        if let Some(label) = instr["label"].as_str() {
+        if let Some(_) = instr["label"].as_str() {
             // Instruction is a label, doesn't have an opcode
-            println!(".{label}");
             continue;
         } else {
             let opcode: Opcode = serde_json::from_value(instr["op"].clone())

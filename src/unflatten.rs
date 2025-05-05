@@ -12,6 +12,9 @@ use serde_json::json;
 /// corresponding to a Bril function and returns its JSON representation
 #[allow(dead_code)]
 pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
+    // TODO: figure out how to create JSON objects for the labels
+    // (right now they're not being created)
+
     let mut instr_json_vec = vec![];
     for instr in &instr_store.instrs {
         let op_str = Opcode::op_idx_to_op_str(instr.op as usize);
@@ -21,19 +24,6 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
         if let Some(ty) = &instr.ty {
             ty_str = Some(ty.as_str());
         }
-
-        // Convert the `value` field in the `Instr` to a string
-        // let mut val_str: Option<String> = None;
-        // if let Some(val) = &instr.value {
-        //     match val {
-        //         BrilValue::BoolVal(b) => {
-        //             val_str = Some(format!("{b}"));
-        //         }
-        //         BrilValue::IntVal(n) => {
-        //             val_str = Some(format!("{n}"));
-        //         }
-        //     };
-        // }
 
         // Convert the `dest` index of the instr to an actual string
         // containing the dest

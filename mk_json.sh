@@ -14,8 +14,6 @@ for bril_file in test/*.bril; do
     # Define the output JSON file
     json_file="test/${base_name}.json"
     
-    echo "Converting $bril_file to $json_file"
-    
     # Run the conversion command
     bril2json < "$bril_file" > "$json_file"
     
