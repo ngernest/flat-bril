@@ -124,39 +124,38 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
 
                 // Build a JSON object corresponding to the right instr kind
                 let instr_kind = instr.get_instr_kind();
-                let instr_json;
-                match instr_kind {
+                let instr_json = match instr_kind {
                     InstrKind::Const => {
                         let dest_for_json =
                             str::from_utf8(dest.expect("missing dest"))
                                 .expect("invalid utf-8");
-                        instr_json = serde_json::json!({
+                        serde_json::json!({
                           "op": op_str,
                           "dest": dest_for_json,
                           "type": ty_str.expect("Expected string representing a type"),
                           "value": value_for_json.expect("Missing value"),
-                        });
+                        })
                     }
                     InstrKind::ValueOp => {
                         let dest_for_json =
                             str::from_utf8(dest.expect("missing dest"))
                                 .expect("invalid utf-8");
-                        instr_json = serde_json::json!({
+                        serde_json::json!({
                           "op": op_str,
                           "dest": dest_for_json,
                           "type": ty_str.expect("Expected string representing a type"),
                           "args": args_for_json,
                           "labels": labels_for_json,
                           "funcs": funcs_for_json
-                        });
+                        })
                     }
                     InstrKind::EffectOp => {
-                        instr_json = serde_json::json!({
+                        serde_json::json!({
                           "op": op_str,
                           "args": args_for_json,
                           "labels": labels_for_json,
                           "funcs": funcs_for_json
-                        });
+                        })
                     }
                 };
 

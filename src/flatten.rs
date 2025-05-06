@@ -19,7 +19,7 @@ use crate::types::*;
 /// - global_idxes_vec = all_labels_idxes
 /// - buffer = all_labels
 pub fn flatten_instr_array_fields(
-    json_vec: &Vec<serde_json::Value>,
+    json_vec: &[serde_json::Value],
     global_idxes_vec: &mut Vec<(u32, u32)>,
     buffer: &mut Vec<u8>,
 ) -> (u32, u32) {
@@ -236,7 +236,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
             all_instrs_labels.push(InstrOrLabel::Instr(instr));
         }
     }
-    
+
     InstrStore {
         func_name: func_name_bytes,
         func_args,
