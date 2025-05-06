@@ -93,6 +93,38 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
         .as_array()
         .expect("Expected `instrs` to be a JSON array");
 
+    // Extract the function's arguments from the JSON
+    // (According to the Bril spec, a missing `args` field in the JSON means
+    // the same as an empty args list, so `func_args` is the empty vector
+    // when `func_json["args"]` doesn't exist)
+    let mut func_args: Vec<FuncArg> = vec![];
+    if let Some(func_args_json) = func_json["args"].as_array() {
+        for func_arg in func_args_json {
+            let arg_name: &str = func_arg["name"]
+                .as_str()
+                .expect("Expected `name` to be a string");
+
+            // Find the start/end index of the argument string in the
+            // `all_vars` buffer, & add the bytes of the arg to `all_vars`
+            let arg_bytes: &[u8] = arg_name.as_bytes();
+            let start_idx = all_vars.len() as u32;
+            all_vars.extend_from_slice(arg_bytes);
+            let end_idx = (all_vars.len() - 1) as u32;
+
+            if let Ok(arg_type) =
+                serde_json::from_value::<Type>(func_arg["type"].clone())
+            {
+                let func_arg_struct = FuncArg {
+                    arg_name_idxes: (start_idx, end_idx),
+                    arg_type,
+                };
+                func_args.push(func_arg_struct);
+            } else {
+                panic!("Missing type for function argument in source file")
+            }
+        }
+    }
+
     // `all_instrs_labels` is a temporary vec that stores all the `Instr`s
     // and labels that we encounter (in the order they appear in the Bril file)
     let mut all_instrs_labels: Vec<InstrOrLabel> =
@@ -198,6 +230,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
     }
     let instr_store = InstrStore {
         func_name: func_name_bytes,
+        func_args,
         var_store: all_vars,
         args_idxes_store: all_args_idxes,
         labels_idxes_store: all_labels_idxes,
@@ -218,7 +251,7 @@ mod flatten_tests {
     use std::io;
     use std::{fs, fs::File, io::BufReader};
 
-    use crate::types::{InstrStore, Opcode};
+    use crate::types::{InstrOrLabel, InstrStore, Opcode};
 
     // We use `strum` to iterate over every variant in the `Opcode` enum easily
     use strum::IntoEnumIterator;
@@ -273,30 +306,32 @@ mod flatten_tests {
                     .expect("Expected `functions` to be a JSON array");
                 let instr_store: InstrStore =
                     flatten::flatten_instrs(&functions[0]);
-                for instr in instr_store.instrs_and_labels {
-                    if let Some((args_start, args_end)) = instr.args {
-                        assert!(
-                            args_end >= args_start,
-                            "{} >= {} is false",
-                            args_end,
-                            args_start
-                        );
-                    }
-                    if let Some((labels_start, labels_end)) = instr.labels {
-                        assert!(
-                            labels_end >= labels_start,
-                            "{} >= {} is false",
-                            labels_end,
-                            labels_start
-                        );
-                    }
-                    if let Some((funcs_start, funcs_end)) = instr.funcs {
-                        assert!(
-                            funcs_end >= funcs_start,
-                            "{} >= {} is false",
-                            funcs_end,
-                            funcs_start
-                        );
+                for instr_or_label in instr_store.instrs_and_labels {
+                    if let InstrOrLabel::Instr(instr) = instr_or_label {
+                        if let Some((args_start, args_end)) = instr.args {
+                            assert!(
+                                args_end >= args_start,
+                                "{} >= {} is false",
+                                args_end,
+                                args_start
+                            );
+                        }
+                        if let Some((labels_start, labels_end)) = instr.labels {
+                            assert!(
+                                labels_end >= labels_start,
+                                "{} >= {} is false",
+                                labels_end,
+                                labels_start
+                            );
+                        }
+                        if let Some((funcs_start, funcs_end)) = instr.funcs {
+                            assert!(
+                                funcs_end >= funcs_start,
+                                "{} >= {} is false",
+                                funcs_end,
+                                funcs_start
+                            );
+                        }
                     }
                 }
             }

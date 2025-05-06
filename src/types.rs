@@ -234,6 +234,17 @@ impl Opcode {
     }
 }
 
+/// Struct representing the two components of an argument to a Bril function:
+/// 1. The argument name, represented by the start & end indexes in the
+/// `var_store` vector of `InstrStore`
+/// 2. The type of the argument
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub struct FuncArg {
+    pub arg_name_idxes: (u32, u32),
+    pub arg_type: Type,
+}
+
 /// Struct that stores all the instrs and the args/dest/labels/funcs arrays
 /// in the same place (note: we create one `InstrStore` per Bril function)
 /// - The `func_name` field stores the name of the Bril function
@@ -242,9 +253,9 @@ impl Opcode {
 /// - labels_idxes_store |-> labels_store
 /// - there's only one function so funcs_store can just be Vec<u8>
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct InstrStore {
     pub func_name: Vec<u8>,
+    pub func_args: Vec<FuncArg>,
     pub var_store: Vec<u8>,
     pub args_idxes_store: Vec<(u32, u32)>,
     pub labels_idxes_store: Vec<(u32, u32)>,

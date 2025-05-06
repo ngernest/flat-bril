@@ -165,12 +165,34 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
         }
     }
 
+    // Convert the function name from raw bytes back to a UTF-8 string
     let func_name =
         str::from_utf8(&instr_store.func_name).expect("invalid utf-8");
 
-    let func_json: serde_json::Value = serde_json::json!({
+    // Recover the arguments to the function (if any exist)
+    let mut func_args_for_json = vec![];
+    for func_arg in &instr_store.func_args {
+        // For each arg, use its start & end index to index into the `var_store`
+        // buffer, then convert those bytes back to a valid string
+        let (start_idx, end_idx) = func_arg.arg_name_idxes;
+        let start_idx = start_idx as usize;
+        let end_idx = end_idx as usize;
+        let func_arg_str =
+            str::from_utf8(&instr_store.var_store[start_idx..=end_idx])
+                .expect("invalid utf-8");
+
+        // Extract the type of the function argument
+        let arg_type_str = func_arg.arg_type.as_str();
+        let func_arg_json = serde_json::json!({
+            "name": func_arg_str,
+            "type": arg_type_str
+        });
+        func_args_for_json.push(func_arg_json);
+    }
+
+    let func_json = serde_json::json!({
         "name": func_name,
-        "args": null, // TODO: handle func args
+        "args": func_args_for_json,
         "instrs": instr_json_vec
     });
     func_json
