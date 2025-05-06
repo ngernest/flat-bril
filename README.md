@@ -3,20 +3,10 @@
 - Run `cargo build` to compile. 
 - Example usage:
 ```bash
-bril2json < test/tiny.bril | cargo run
+# This does a JSON -> flattened representation -> JSON round trip and 
+# runs the Bril interpreter on the resultant JSON
+bril2json < test/tiny.bril | cargo run | brili
 ```
-This outputs: 
-```bash
-@main
-	op: const		dest: v 		type: int		value: 4
-	op: const		dest: b 		type: bool		value: false
-	op: br   		args: ["b"]		labels: ["there", "here"]
-.here
-	op: const		dest: v 		type: int		value: 2
-.there
-	op: print		args: ["v"]
-```
-
 - Run `cargo test` to run unit tests
 - Run `turnt -e roundtrip test/*.bril` to check whether `brili` returns the same output after a JSON -> flattened format -> JSON round trip
 
