@@ -6,7 +6,10 @@ use crate::types::*;
 
 /// Takes in a vector of JSON values (representing variables / labels),
 /// a vector `global_idxes_vec` storing the start & end index of  
-/// the byte representation of each var in `buffer` (a byte sequence)
+/// the byte representation of each var in `buffer` (a byte sequence),
+/// and returns the start / end index of the buffer corresponding to the
+/// elements in `json_vec`
+///
 /// Example:
 /// - json_vec = args_json_vec
 /// - global_idxes_vec = all_args_idxes
@@ -96,10 +99,24 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
         Vec::with_capacity(NUM_INSTRS);
 
     for instr in instrs {
-        if let Some(_label) = instr["label"].as_str() {
+        if let Some(label) = instr["label"].as_str() {
             // Instruction is a label, doesn't have an opcode
-            // TODO: need to figure out how to look-up `_label` in either
-            // `all_labels` in order to fetch `all_labels_idxes`
+
+            // TODO: fix this indexing bug!
+            // (not sure why some characters from the label are being omitted)
+
+            // Find the start/end indices in `all_labels` corresponding
+            // to this particular label
+            let label_bytes = label.as_bytes();
+            let start_idx = all_labels_idxes.len() as u32;
+            let n = all_labels.len() as u32;
+            all_labels_idxes.push((n, n + (label_bytes.len() - 1) as u32));
+            let end_idx = (all_labels_idxes.len() - 1) as u32;
+            all_instrs_labels.push(InstrOrLabel::Label((start_idx, end_idx)));
+
+            // Add the current label to the global buffer of labels
+            all_labels.extend(label_bytes);
+
             continue;
         } else {
             let opcode: Opcode = serde_json::from_value(instr["op"].clone())
