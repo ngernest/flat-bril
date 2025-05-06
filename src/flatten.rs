@@ -175,7 +175,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
             if let Some(dest) = instr["dest"].as_str() {
                 dest_idx = Some((
                     all_vars.len() as u32,
-                    (all_vars.len() + dest.as_bytes().len() - 1) as u32,
+                    (all_vars.len() + dest.len() - 1) as u32,
                 ));
                 all_vars.extend_from_slice(dest.as_bytes());
             }
@@ -236,7 +236,8 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
             all_instrs_labels.push(InstrOrLabel::Instr(instr));
         }
     }
-    let instr_store = InstrStore {
+    
+    InstrStore {
         func_name: func_name_bytes,
         func_args,
         func_ret_ty,
@@ -246,8 +247,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
         labels_store: all_labels,
         funcs_store: all_funcs,
         instrs_and_labels: all_instrs_labels,
-    };
-    instr_store
+    }
 }
 
 /* -------------------------------------------------------------------------- */
