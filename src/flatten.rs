@@ -93,6 +93,14 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
         .as_array()
         .expect("Expected `instrs` to be a JSON array");
 
+    // Figure out if the function has a return type
+    let mut func_ret_ty: Option<Type> = None;
+    if let Ok(ret_ty) =
+        serde_json::from_value::<Type>(func_json["type"].clone())
+    {
+        func_ret_ty = Some(ret_ty);
+    }
+
     // Extract the function's arguments from the JSON
     // (According to the Bril spec, a missing `args` field in the JSON means
     // the same as an empty args list, so `func_args` is the empty vector
@@ -231,6 +239,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
     let instr_store = InstrStore {
         func_name: func_name_bytes,
         func_args,
+        func_ret_ty,
         var_store: all_vars,
         args_idxes_store: all_args_idxes,
         labels_idxes_store: all_labels_idxes,

@@ -190,10 +190,24 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
         func_args_for_json.push(func_arg_json);
     }
 
-    let func_json = serde_json::json!({
-        "name": func_name,
-        "args": func_args_for_json,
-        "instrs": instr_json_vec
-    });
+    // Distinguish between funcs that have a return type & void functions
+    // (for void functions, there is no "type" field in the JSON object
+    // representing the function)
+    let func_json;
+    if let Some(ret_ty) = &instr_store.func_ret_ty {
+        func_json = serde_json::json!({
+            "name": func_name,
+            "args": func_args_for_json,
+            "type": ret_ty.as_str(),
+            "instrs": instr_json_vec
+        });
+    } else {
+        func_json = serde_json::json!({
+            "name": func_name,
+            "args": func_args_for_json,
+            "instrs": instr_json_vec
+        });
+    }
+
     func_json
 }

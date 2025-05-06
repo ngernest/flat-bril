@@ -249,13 +249,20 @@ pub struct FuncArg {
 /// in the same place (note: we create one `InstrStore` per Bril function)
 /// - The `func_name` field stores the name of the Bril function
 ///   corresponding to this `InstrStore`
+/// - `func_args` is a list of function parameters
+///    (arg type + indexes for the arg name)
+/// - `func_ret_ty` is the return type of the function
+///   (`None` means the function is void, i.e. has no return type)
 /// - args_idxes_stores |-> var_store
 /// - labels_idxes_store |-> labels_store
-/// - there's only one function so funcs_store can just be Vec<u8>
+/// - there's only one function so `funcs_store` can just be Vec<u8>
+/// - `instrs_and_labels` is a vector containing the instructions/labels in
+///    the order they appear in the source Bril file
 #[derive(Debug, Clone)]
 pub struct InstrStore {
     pub func_name: Vec<u8>,
     pub func_args: Vec<FuncArg>,
+    pub func_ret_ty: Option<Type>,
     pub var_store: Vec<u8>,
     pub args_idxes_store: Vec<(u32, u32)>,
     pub labels_idxes_store: Vec<(u32, u32)>,
