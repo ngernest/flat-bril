@@ -102,20 +102,15 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
         if let Some(label) = instr["label"].as_str() {
             // Instruction is a label, doesn't have an opcode
 
-            // TODO: fix this indexing bug!
-            // (not sure why some characters from the label are being omitted)
-
-            // Find the start/end indices in `all_labels` corresponding
-            // to this particular label
+            // Add the current label to the global buffer of labels,
+            // and keep track of the indices in `all_labels` corersponding to
+            // the start & end of the label
             let label_bytes = label.as_bytes();
-            let start_idx = all_labels_idxes.len() as u32;
-            let n = all_labels.len() as u32;
-            all_labels_idxes.push((n, n + (label_bytes.len() - 1) as u32));
-            let end_idx = (all_labels_idxes.len() - 1) as u32;
-            all_instrs_labels.push(InstrOrLabel::Label((start_idx, end_idx)));
-
-            // Add the current label to the global buffer of labels
+            let start_idx = all_labels.len() as u32;
             all_labels.extend(label_bytes);
+            let end_idx = (all_labels.len() - 1) as u32;
+
+            all_instrs_labels.push(InstrOrLabel::Label((start_idx, end_idx)));
 
             continue;
         } else {
