@@ -19,7 +19,7 @@ use zerocopy::IntoBytes;
 ///   (since they're either an int or a bool,
 ///   i.e. they don't need to be heap-allocated)
 /// - `dest` stores the start & end indices (inclusive) of the byte representation
-///    of the string in the `all_vars` byte vector (see `flatten.rs`)
+///   of the string in the `all_vars` byte vector (see `flatten.rs`)
 /// - `args` and `labels` contains the start & end indices (inclusive)
 ///   in their index vectors (see `all_args_idxes` & `all_labels_idxes` in `flatten.rs`)
 /// - For `args` and `labels` we have 2 layers of indirection since
@@ -235,9 +235,9 @@ impl Opcode {
 }
 
 /// Struct representing the two components of an argument to a Bril function:
-/// 1. The argument name, represented by the start & end indexes in the
-/// `var_store` vector of `InstrStore`
-/// 2. The type of the argument
+/// - The argument name, represented by the start & end indexes in the
+///   `var_store` vector of `InstrStore`
+/// - The type of the argument
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct FuncArg {
@@ -250,14 +250,14 @@ pub struct FuncArg {
 /// - The `func_name` field stores the name of the Bril function
 ///   corresponding to this `InstrStore`
 /// - `func_args` is a list of function parameters
-///    (arg type + indexes for the arg name)
+///   (arg type + indexes for the arg name)
 /// - `func_ret_ty` is the return type of the function
 ///   (`None` means the function is void, i.e. has no return type)
 /// - args_idxes_stores |-> var_store
 /// - labels_idxes_store |-> labels_store
 /// - there's only one function so `funcs_store` can just be Vec<u8>
 /// - `instrs_and_labels` is a vector containing the instructions/labels in
-///    the order they appear in the source Bril file
+///   the order they appear in the source Bril file
 #[derive(Debug, Clone)]
 pub struct InstrStore {
     pub func_name: Vec<u8>,

@@ -4,10 +4,6 @@ use std::str;
 #[allow(unused_imports)]
 use serde_json::json;
 
-// TODO: figure out how to handle labels when unflattening since they're
-// not currently represented in the `InstrStore`
-// (labels are just printed directly to stdout when we flatten)
-
 /// Takes an `InstrStore` (flattened instrs + arrays storing args/dests etc.)
 /// corresponding to a Bril function and returns its JSON representation
 #[allow(dead_code)]
