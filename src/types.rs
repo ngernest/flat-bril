@@ -3,7 +3,7 @@ use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use strum_macros::EnumIter;
-use zerocopy::IntoBytes;
+use zerocopy::{little_endian::I32, IntoBytes};
 
 /* -------------------------------------------------------------------------- */
 /*                                    Types                                   */
@@ -49,19 +49,21 @@ pub enum InstrOrLabel {
 
 /// Struct representation of the pair `(i32, i32)`
 /// (we need this b/c `zerocopy` doesn't work for tuples)
-#[repr(C)]
+#[allow(dead_code)]
+#[repr(packed)]
 #[derive(Debug, Clone, IntoBytes)]
 pub struct I32Pair {
-    pub first: i32,
-    pub second: i32,
+    pub first: I32,
+    pub second: I32,
 }
 
 /// Flattened representation of an instruction, amenable to `zerocopy`
+/// TODO: figure out why we can't derive `IntoBytes`
 #[allow(dead_code)]
-#[repr(C)]
 #[derive(Debug, Clone)]
+#[repr(C)]
 pub struct FlatInstr {
-    pub op: i32,
+    pub op: I32,
     pub dest: I32Pair,
     pub args: I32Pair,
     pub labels: I32Pair,
@@ -95,8 +97,8 @@ pub enum Type {
 /// - The `Null` constructor is only used for flattening
 ///   (to indicate the absence of a value)
 #[allow(dead_code)]
-#[repr(C)]
 #[derive(Debug, PartialEq, Clone)]
+#[repr(C)]
 pub enum BrilValue {
     IntVal(i64),
     BoolVal(bool),
