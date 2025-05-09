@@ -70,6 +70,7 @@ pub struct FlatInstr {
     pub value: BrilValue,
 }
 
+#[repr(C)]
 #[derive(Debug, Clone)]
 pub enum InstrKind {
     Const,
@@ -93,6 +94,7 @@ pub enum Type {
 /// - The `Null` constructor is only used for flattening
 ///   (to indicate the absence of a value)
 #[allow(dead_code)]
+#[repr(C)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum BrilValue {
     IntVal(i64),
@@ -123,6 +125,7 @@ impl Instr {
     }
 }
 
+#[repr(C)]
 #[derive(
     Debug, PartialEq, Clone, Deserialize, Serialize, EnumIter, FromPrimitive,
 )]
