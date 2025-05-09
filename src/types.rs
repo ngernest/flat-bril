@@ -76,6 +76,7 @@ pub enum InstrKind {
     Const,
     ValueOp,
     EffectOp,
+    Nop,
 }
 
 /// Primitive types in core Bril are either `int` or `bool`
@@ -108,6 +109,7 @@ impl Instr {
         use Opcode::*;
         let op = Opcode::u32_to_opcode(self.op);
         match op {
+            Nop => InstrKind::Nop,
             Const => InstrKind::Const,
             Print | Jmp | Br | Ret => InstrKind::EffectOp,
             Call => {
