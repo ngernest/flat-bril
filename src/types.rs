@@ -3,7 +3,7 @@
 use core::panic;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{fmt, u32};
 use strum_macros::EnumIter;
 use zerocopy::IntoBytes;
 
@@ -29,41 +29,33 @@ use zerocopy::IntoBytes;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Instr {
     pub op: u32,
+    pub label: Option<(u32, u32)>,
     pub dest: Option<(u32, u32)>,
     pub ty: Option<Type>,
     pub value: Option<BrilValue>,
     pub args: Option<(u32, u32)>,
-    pub labels: Option<(u32, u32)>,
+    pub instr_labels: Option<(u32, u32)>,
     pub funcs: Option<(u32, u32)>,
-}
-
-/// A type that represents an "item" that we encounter in a Bril file,
-/// where an item is either an instruction `Instr` or a `Label` (represented
-/// by the start & end indices of the label in the global
-/// labels byte sequence)
-#[derive(Debug, PartialEq, Clone)]
-pub enum InstrOrLabel {
-    Instr(Instr),
-    Label((u32, u32)),
 }
 
 /// Struct representation of the pair `(i32, i32)`
 /// (we need this b/c `zerocopy` doesn't work for tuples)
 #[repr(C)]
-#[derive(Debug, Clone, Copy, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
 pub struct I32Pair {
     pub first: i32,
     pub second: i32,
 }
 
 /// Flattened representation of an instruction, amenable to `zerocopy`
-#[derive(Debug, Clone, Copy, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
 #[repr(C)]
 pub struct FlatInstr {
     pub op: u32,
+    pub label: I32Pair,
     pub dest: I32Pair,
     pub args: I32Pair,
-    pub labels: I32Pair,
+    pub instr_labels: I32Pair,
     pub funcs: I32Pair,
     pub ty: FlatType,
     pub value: FlatBrilValue,
@@ -95,15 +87,6 @@ pub enum FlatType {
     Bool,
     Null,
 }
-
-// impl From<Type> for FlatType {
-//     fn from(ty: Type) -> Self {
-//         match ty {
-//             Type::Bool => FlatType::Bool,
-//             Type::Int => FlatType::Int,
-//         }
-//     }
-// }
 
 impl From<Option<Type>> for FlatType {
     fn from(ty_opt: Option<Type>) -> Self {
@@ -207,6 +190,21 @@ impl From<bool> for SurrogateBool {
 }
 
 impl Instr {
+    /// Represents a label as an `Instr` where
+    /// all other fields of the struct are none
+    pub fn make_label(label_idxes: (u32, u32)) -> Self {
+        Self {
+            op: u32::MAX,
+            label: Some(label_idxes),
+            dest: None,
+            ty: None,
+            value: None,
+            args: None,
+            instr_labels: None,
+            funcs: None,
+        }
+    }
+
     /// Retrieves the kind of an instruction (`Nop, Const, EffectOp, ValueOp`)
     pub fn get_instr_kind(&self) -> InstrKind {
         use Opcode::*;
@@ -250,9 +248,10 @@ impl From<Instr> for FlatInstr {
     fn from(instr: Instr) -> Self {
         FlatInstr {
             op: instr.op,
+            label: instr.label.into(),
             dest: instr.dest.into(),
             args: instr.args.into(),
-            labels: instr.labels.into(),
+            instr_labels: instr.instr_labels.into(),
             funcs: instr.funcs.into(),
             ty: instr.ty.into(),
             value: instr.value.into(),
@@ -411,7 +410,7 @@ pub struct InstrStore {
     pub labels_idxes_store: Vec<(u32, u32)>,
     pub labels_store: Vec<u8>,
     pub funcs_store: Vec<u8>,
-    pub instrs_and_labels: Vec<InstrOrLabel>,
+    pub instrs: Vec<Instr>,
 }
 
 /* -------------------------------------------------------------------------- */

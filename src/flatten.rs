@@ -135,8 +135,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
 
     // `all_instrs_labels` is a temporary vec that stores all the `Instr`s
     // and labels that we encounter (in the order they appear in the Bril file)
-    let mut all_instrs_labels: Vec<InstrOrLabel> =
-        Vec::with_capacity(NUM_INSTRS);
+    let mut all_instrs_labels: Vec<Instr> = Vec::with_capacity(NUM_INSTRS);
 
     for instr in instrs {
         if let Some(label) = instr["label"].as_str() {
@@ -150,7 +149,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
             all_labels.extend(label_bytes);
             let end_idx = (all_labels.len() - 1) as u32;
 
-            all_instrs_labels.push(InstrOrLabel::Label((start_idx, end_idx)));
+            all_instrs_labels.push(Instr::make_label((start_idx, end_idx)));
 
             continue;
         } else {
@@ -226,14 +225,15 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
 
             let instr = Instr {
                 op: opcode_idx,
+                label: None,
                 args: arg_idxes,
                 dest: dest_idx,
                 ty,
-                labels: labels_idxes,
+                instr_labels: labels_idxes,
                 value,
                 funcs: func_idx,
             };
-            all_instrs_labels.push(InstrOrLabel::Instr(instr));
+            all_instrs_labels.push(instr);
         }
     }
 
@@ -246,7 +246,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
         labels_idxes_store: all_labels_idxes,
         labels_store: all_labels,
         funcs_store: all_funcs,
-        instrs_and_labels: all_instrs_labels,
+        instrs: all_instrs_labels,
     }
 }
 
@@ -260,7 +260,7 @@ mod flatten_tests {
     use std::io;
     use std::{fs, fs::File, io::BufReader};
 
-    use crate::types::{InstrOrLabel, InstrStore, Opcode};
+    use crate::types::{InstrStore, Opcode};
 
     // We use `strum` to iterate over every variant in the `Opcode` enum easily
     use strum::IntoEnumIterator;
@@ -315,32 +315,31 @@ mod flatten_tests {
                     .expect("Expected `functions` to be a JSON array");
                 let instr_store: InstrStore =
                     flatten::flatten_instrs(&functions[0]);
-                for instr_or_label in instr_store.instrs_and_labels {
-                    if let InstrOrLabel::Instr(instr) = instr_or_label {
-                        if let Some((args_start, args_end)) = instr.args {
-                            assert!(
-                                args_end >= args_start,
-                                "{} >= {} is false",
-                                args_end,
-                                args_start
-                            );
-                        }
-                        if let Some((labels_start, labels_end)) = instr.labels {
-                            assert!(
-                                labels_end >= labels_start,
-                                "{} >= {} is false",
-                                labels_end,
-                                labels_start
-                            );
-                        }
-                        if let Some((funcs_start, funcs_end)) = instr.funcs {
-                            assert!(
-                                funcs_end >= funcs_start,
-                                "{} >= {} is false",
-                                funcs_end,
-                                funcs_start
-                            );
-                        }
+                for instr in instr_store.instrs {
+                    if let Some((args_start, args_end)) = instr.args {
+                        assert!(
+                            args_end >= args_start,
+                            "{} >= {} is false",
+                            args_end,
+                            args_start
+                        );
+                    }
+                    if let Some((labels_start, labels_end)) = instr.instr_labels
+                    {
+                        assert!(
+                            labels_end >= labels_start,
+                            "{} >= {} is false",
+                            labels_end,
+                            labels_start
+                        );
+                    }
+                    if let Some((funcs_start, funcs_end)) = instr.funcs {
+                        assert!(
+                            funcs_end >= funcs_start,
+                            "{} >= {} is false",
+                            funcs_end,
+                            funcs_start
+                        );
                     }
                 }
             }
