@@ -1,9 +1,9 @@
-#![allow(dead_code)]
+#![allow(dead_code, clippy::repr_packed_without_abi)]
 
 use core::panic;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
-use std::{fmt, u32};
+use std::fmt;
 use strum_macros::EnumIter;
 use zerocopy::{Immutable, IntoBytes};
 

@@ -13,6 +13,8 @@ pub fn main() {
         std::env::set_var("RUST_BACKTRACE", "1");
     }
 
+    println!("memfile");
+
     // Read in the JSON representation of a Bril file from stdin
     let mut buffer = String::new();
     std::io::stdin()
@@ -59,7 +61,7 @@ pub fn main() {
             .into_iter()
             .map(|instr| instr.into())
             .collect();
-        let flat_instrs: &[FlatInstr] = &flat_instrs_vec.as_slice();
+        let flat_instrs: &[FlatInstr] = flat_instrs_vec.as_slice();
         let _instr_view = InstrView {
             func_name: flat_func_name,
             func_args: flat_func_args,

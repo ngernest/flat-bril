@@ -12,7 +12,6 @@ fn main() {
         std::env::set_var("RUST_BACKTRACE", "1");
     }
 
-    // TODO: figure out if the `--memfile` cmd-line flag actually works
     let matches = Command::new("flat-bril")
         .arg(
             Arg::new("memfile")
@@ -21,6 +20,7 @@ fn main() {
         )
         .get_matches();
 
+    // Example: ` bril2json < test/nop.bril | cargo run -- --memfile`
     if matches.get_flag("memfile") {
         // Call the main function from memfile.rs
         memfile::main();
