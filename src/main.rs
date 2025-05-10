@@ -4,7 +4,6 @@ mod flatten;
 mod types;
 mod unflatten;
 
-#[allow(unused_variables)]
 fn main() {
     // Enable stack backtrace for debugging
     unsafe {

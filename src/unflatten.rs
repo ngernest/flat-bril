@@ -1,12 +1,10 @@
+#![allow(dead_code)]
+
 use crate::types::*;
 use std::str;
 
-#[allow(unused_imports)]
-use serde_json::json;
-
 /// Takes an `InstrStore` (flattened instrs + arrays storing args/dests etc.)
 /// corresponding to a Bril function and returns its JSON representation
-#[allow(dead_code)]
 pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
     let mut instr_json_vec = vec![];
 

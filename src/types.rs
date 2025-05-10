@@ -10,7 +10,6 @@ use zerocopy::IntoBytes;
 /* -------------------------------------------------------------------------- */
 /*                                    Types                                   */
 /* -------------------------------------------------------------------------- */
-#[allow(dead_code, unused_variables)]
 #[derive(Debug, PartialEq, Clone)]
 /// Flattened type for Bril instructions.   
 /// - The `op` field stores an index `i` into `OPCODE_IDX`, where
@@ -37,12 +36,11 @@ pub struct Instr {
     pub funcs: Option<(u32, u32)>,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, PartialEq, Clone)]
 /// A type that represents an "item" that we encounter in a Bril file,
 /// where an item is either an instruction `Instr` or a `Label` (represented
 /// by the start & end indices of the label in the global
 /// labels byte sequence)
+#[derive(Debug, PartialEq, Clone)]
 pub enum InstrOrLabel {
     Instr(Instr),
     Label((u32, u32)),
