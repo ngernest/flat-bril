@@ -1,14 +1,15 @@
+#![allow(dead_code)]
+
 use core::panic;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use strum_macros::EnumIter;
-use zerocopy::{little_endian::I32, IntoBytes};
+use zerocopy::IntoBytes;
 
 /* -------------------------------------------------------------------------- */
 /*                                    Types                                   */
 /* -------------------------------------------------------------------------- */
-
 #[allow(dead_code, unused_variables)]
 #[derive(Debug, PartialEq, Clone)]
 /// Flattened type for Bril instructions.   
@@ -49,21 +50,18 @@ pub enum InstrOrLabel {
 
 /// Struct representation of the pair `(i32, i32)`
 /// (we need this b/c `zerocopy` doesn't work for tuples)
-#[allow(dead_code)]
 #[repr(packed)]
-#[derive(Debug, Clone, IntoBytes)]
+#[derive(Debug, Clone, Copy, IntoBytes)]
 pub struct I32Pair {
-    pub first: I32,
-    pub second: I32,
+    pub first: i32,
+    pub second: i32,
 }
 
 /// Flattened representation of an instruction, amenable to `zerocopy`
-/// TODO: figure out why we can't derive `IntoBytes`
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, IntoBytes)]
 #[repr(C)]
 pub struct FlatInstr {
-    pub op: I32,
+    pub op: i32,
     pub dest: I32Pair,
     pub args: I32Pair,
     pub labels: I32Pair,
@@ -73,7 +71,7 @@ pub struct FlatInstr {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum InstrKind {
     Const,
     ValueOp,
@@ -83,7 +81,7 @@ pub enum InstrKind {
 
 /// Primitive types in core Bril are either `int` or `bool`
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Deserialize, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, Deserialize, IntoBytes)]
 #[serde(rename_all = "lowercase")]
 pub enum Type {
     Int,
@@ -91,22 +89,49 @@ pub enum Type {
     Null,
 }
 
-/// Bril values are either 64-bit integers or bools.   
-/// Note: We call this enum `BrilValue` to avoid namespace clashes
+/// The type of primitive values in Bril.    
+/// - Note: We call this enum `BrilValue` to avoid namespace clashes
 /// with `serde_json::Value`
-/// - The `Null` constructor is only used for flattening
-///   (to indicate the absence of a value)
-#[allow(dead_code)]
-#[derive(Debug, PartialEq, Clone)]
-#[repr(C)]
+/// - `SurrogateBool` is needed for padding reasons (to make zerocopy happy)
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
+#[repr(u64)]
 pub enum BrilValue {
     IntVal(i64),
-    BoolVal(bool),
-    Null,
+    BoolVal(SurrogateBool),
 }
 
-#[allow(dead_code)]
+/// A type isomorphic to `bool`, which is represented as a u64
+/// (so that it has the same representation as `BrilValue::IntVal`'s)
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
+#[repr(u64)]
+pub enum SurrogateBool {
+    Fls = 0,
+    Tru = 1,
+}
+
+// `bool::from(surrogate_bool)` is useful
+impl From<SurrogateBool> for bool {
+    fn from(value: SurrogateBool) -> Self {
+        match value {
+            SurrogateBool::Fls => false,
+            SurrogateBool::Tru => true,
+        }
+    }
+}
+
+// For `b:bool`, `b.into()` converts it to a `SurrogateBool`
+impl From<bool> for SurrogateBool {
+    fn from(b: bool) -> Self {
+        if b {
+            SurrogateBool::Tru
+        } else {
+            SurrogateBool::Fls
+        }
+    }
+}
+
 impl Instr {
+    /// Retrieves the kind of an instruction (`Nop, Const, EffectOp, ValueOp`)
     pub fn get_instr_kind(&self) -> InstrKind {
         use Opcode::*;
         let op = Opcode::u32_to_opcode(self.op);
@@ -131,7 +156,14 @@ impl Instr {
 
 #[repr(C)]
 #[derive(
-    Debug, PartialEq, Clone, Deserialize, Serialize, EnumIter, FromPrimitive,
+    Debug,
+    PartialEq,
+    Clone,
+    Copy,
+    Deserialize,
+    Serialize,
+    EnumIter,
+    FromPrimitive,
 )]
 #[serde(rename_all = "lowercase")]
 pub enum Opcode {
@@ -226,7 +258,6 @@ impl Opcode {
 
     /// Converts an `Opcode` to a `&str` using the `(start_idx, end_idx)`
     /// obtained from `Instr::get_buffer_start_end_indexes`.
-    #[allow(dead_code)]
     pub fn as_str(&self) -> &str {
         let (start_idx, end_idx) = self.get_buffer_start_end_indexes();
         &OPCODE_BUFFER[start_idx..=end_idx]
@@ -245,8 +276,7 @@ impl Opcode {
 /// - The argument name, represented by the start & end indexes in the
 ///   `var_store` vector of `InstrStore`
 /// - The type of the argument
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct FuncArg {
     pub arg_name_idxes: (u32, u32),
     pub arg_type: Type,
@@ -283,7 +313,6 @@ pub struct InstrStore {
 /* -------------------------------------------------------------------------- */
 
 /// A string literal storing all distinct opcodes in core Bril
-#[allow(dead_code)]
 pub const OPCODE_BUFFER: &str =
     "addmulsubdiveqltgtlegenotandorjmpbrcallretidprintnopconst";
 
@@ -362,8 +391,9 @@ impl fmt::Display for BrilValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             BrilValue::IntVal(n) => write!(f, "{}", n),
-            BrilValue::BoolVal(b) => write!(f, "{}", b),
-            BrilValue::Null => write!(f, "null"),
+            BrilValue::BoolVal(b) => {
+                write!(f, "{}", <SurrogateBool as Into<bool>>::into(*b))
+            }
         }
     }
 }

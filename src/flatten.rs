@@ -193,7 +193,7 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
             if let Some(int_value) = instr["value"].as_i64() {
                 value = Some(BrilValue::IntVal(int_value));
             } else if let Some(b) = instr["value"].as_bool() {
-                value = Some(BrilValue::BoolVal(b));
+                value = Some(BrilValue::BoolVal(b.into()));
             }
 
             // Populate the `labels` field of the `Instr` struct
