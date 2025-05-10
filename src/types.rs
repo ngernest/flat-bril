@@ -50,7 +50,7 @@ pub enum InstrOrLabel {
 
 /// Struct representation of the pair `(i32, i32)`
 /// (we need this b/c `zerocopy` doesn't work for tuples)
-#[repr(packed)]
+#[repr(C)]
 #[derive(Debug, Clone, Copy, IntoBytes)]
 pub struct I32Pair {
     pub first: i32,
@@ -91,7 +91,7 @@ pub enum Type {
 
 /// The type of primitive values in Bril.    
 /// - Note: We call this enum `BrilValue` to avoid namespace clashes
-/// with `serde_json::Value`
+///   with `serde_json::Value`
 /// - `SurrogateBool` is needed for padding reasons (to make zerocopy happy)
 #[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
 #[repr(u64)]
@@ -242,7 +242,7 @@ impl Opcode {
 
     /// Returns the `(start idx, end idx)` of the opcode in the `OPCODES` buffer
     pub fn get_buffer_start_end_indexes(&self) -> (usize, usize) {
-        let opcode = self.clone();
+        let opcode = *self;
         OPCODE_IDX[opcode as usize]
     }
 
@@ -392,7 +392,7 @@ impl fmt::Display for BrilValue {
         match self {
             BrilValue::IntVal(n) => write!(f, "{}", n),
             BrilValue::BoolVal(b) => {
-                write!(f, "{}", <SurrogateBool as Into<bool>>::into(*b))
+                write!(f, "{}", bool::from(*b))
             }
         }
     }
