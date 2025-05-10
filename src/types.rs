@@ -5,7 +5,7 @@ use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::{fmt, u32};
 use strum_macros::EnumIter;
-use zerocopy::IntoBytes;
+use zerocopy::{Immutable, IntoBytes};
 
 /* -------------------------------------------------------------------------- */
 /*                                    Types                                   */
@@ -41,14 +41,14 @@ pub struct Instr {
 /// Struct representation of the pair `(i32, i32)`
 /// (we need this b/c `zerocopy` doesn't work for tuples)
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
 pub struct I32Pair {
     pub first: i32,
     pub second: i32,
 }
 
 /// Flattened representation of an instruction, amenable to `zerocopy`
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
 #[repr(C)]
 pub struct FlatInstr {
     pub op: u32,
@@ -80,7 +80,7 @@ pub enum Type {
 }
 
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, Deserialize, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, Deserialize, IntoBytes, Immutable)]
 #[serde(rename_all = "lowercase")]
 pub enum FlatType {
     Int,
@@ -130,7 +130,7 @@ pub enum BrilValue {
     BoolVal(SurrogateBool),
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
 #[repr(u64)]
 pub enum FlatBrilValue {
     IntVal(i64),
@@ -165,12 +165,12 @@ impl TryFrom<FlatBrilValue> for BrilValue {
 }
 
 /// A null which is represented as a u64 to make zerocopy happy
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
 pub struct SurrogateNull(u64);
 
 /// A type isomorphic to `bool`, which is represented as a u64
 /// (so that it has the same representation as `BrilValue::IntVal`'s)
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
 #[repr(u64)]
 pub enum SurrogateBool {
     Fls = 0,
@@ -407,7 +407,7 @@ pub struct FuncArg {
 
 /// Flat version of a `FuncArg`
 #[repr(C)]
-#[derive(Debug, Clone, Copy, IntoBytes)]
+#[derive(Debug, Clone, Copy, IntoBytes, Immutable)]
 pub struct FlatFuncArg {
     pub arg_name_idxes: I32Pair,
     pub arg_type: FlatType,
@@ -449,7 +449,7 @@ pub struct InstrStore {
 }
 
 #[repr(packed)]
-#[derive(Debug, Clone, IntoBytes)]
+#[derive(Debug, Clone, Immutable, IntoBytes)]
 pub struct InstrView<'a> {
     pub func_name: &'a [u8],
     pub func_args: &'a [FlatFuncArg],
