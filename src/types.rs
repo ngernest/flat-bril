@@ -10,7 +10,7 @@ use zerocopy::IntoBytes;
 /* -------------------------------------------------------------------------- */
 /*                                    Types                                   */
 /* -------------------------------------------------------------------------- */
-#[derive(Debug, PartialEq, Clone)]
+
 /// Flattened type for Bril instructions.   
 /// - The `op` field stores an index `i` into `OPCODE_IDX`, where
 ///   `OPCODE_IDX[i] = (start, end)`, such that `OPCODE_BUFFER[start..=end]`
@@ -26,6 +26,7 @@ use zerocopy::IntoBytes;
 ///   an instruction can have multiple args/labels, so
 ///   `(start, end) = instr.arg ==> all_args_idxes[start..=end] ==> all_vars[...]`
 /// - (Well-formedness condition: we must have end_idx >= start_idx always)
+#[derive(Debug, PartialEq, Clone)]
 pub struct Instr {
     pub op: u32,
     pub dest: Option<(u32, u32)>,
@@ -84,6 +85,7 @@ pub enum InstrKind {
 pub enum Type {
     Int,
     Bool,
+    Null,
 }
 
 /// The type of primitive values in Bril.    
@@ -95,7 +97,12 @@ pub enum Type {
 pub enum BrilValue {
     IntVal(i64),
     BoolVal(SurrogateBool),
+    Null(SurrogateNull),
 }
+
+/// A null which is represented as a u64 to make zerocopy happy
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
+pub struct SurrogateNull(u64);
 
 /// A type isomorphic to `bool`, which is represented as a u64
 /// (so that it has the same representation as `BrilValue::IntVal`'s)
@@ -368,6 +375,7 @@ impl fmt::Display for Type {
         match self {
             Type::Int => write!(f, "int"),
             Type::Bool => write!(f, "bool"),
+            Type::Null => write!(f, "null"),
         }
     }
 }
@@ -378,6 +386,7 @@ impl Type {
         match self {
             Type::Int => "int",
             Type::Bool => "bool",
+            Type::Null => "null",
         }
     }
 }
@@ -388,6 +397,9 @@ impl fmt::Display for BrilValue {
             BrilValue::IntVal(n) => write!(f, "{}", n),
             BrilValue::BoolVal(b) => {
                 write!(f, "{}", bool::from(*b))
+            }
+            BrilValue::Null(_) => {
+                write!(f, "null")
             }
         }
     }

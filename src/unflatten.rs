@@ -108,10 +108,16 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
                             value_for_json =
                                 Some(serde_json::to_value(i).unwrap());
                         }
-                        BrilValue::BoolVal(b) => {
+                        BrilValue::BoolVal(surrogate_bool) => {
                             value_for_json = Some(
-                                serde_json::to_value(bool::from(*b)).unwrap(),
+                                serde_json::to_value(bool::from(
+                                    *surrogate_bool,
+                                ))
+                                .unwrap(),
                             );
+                        }
+                        BrilValue::Null(_) => {
+                            panic!("found a null value, this shouldn't happen")
                         }
                     }
                 }
