@@ -98,6 +98,15 @@ impl From<Option<Type>> for FlatType {
     }
 }
 
+impl From<Type> for FlatType {
+    fn from(ty: Type) -> Self {
+        match ty {
+            Type::Bool => FlatType::Bool,
+            Type::Int => FlatType::Int,
+        }
+    }
+}
+
 impl TryFrom<FlatType> for Type {
     type Error = ();
 
@@ -224,6 +233,15 @@ impl Instr {
                 }
             }
             _ => InstrKind::ValueOp,
+        }
+    }
+}
+
+impl From<(u32, u32)> for I32Pair {
+    fn from(pair: (u32, u32)) -> Self {
+        Self {
+            first: pair.0 as i32,
+            second: pair.1 as i32,
         }
     }
 }
@@ -385,6 +403,23 @@ impl Opcode {
 pub struct FuncArg {
     pub arg_name_idxes: (u32, u32),
     pub arg_type: Type,
+}
+
+/// Flat version of a `FuncArg`
+#[repr(C)]
+#[derive(Debug, Clone, Copy, IntoBytes)]
+pub struct FlatFuncArg {
+    pub arg_name_idxes: I32Pair,
+    pub arg_type: FlatType,
+}
+
+impl From<FuncArg> for FlatFuncArg {
+    fn from(func_arg: FuncArg) -> Self {
+        Self {
+            arg_name_idxes: func_arg.arg_name_idxes.into(),
+            arg_type: func_arg.arg_type.into(),
+        }
+    }
 }
 
 /// Struct that stores all the instrs and the args/dest/labels/funcs arrays
