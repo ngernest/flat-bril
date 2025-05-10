@@ -448,6 +448,20 @@ pub struct InstrStore {
     pub instrs: Vec<Instr>,
 }
 
+#[repr(packed)]
+#[derive(Debug, Clone, IntoBytes)]
+pub struct InstrView<'a> {
+    pub func_name: &'a [u8],
+    pub func_args: &'a [FlatFuncArg],
+    pub func_ret_ty: FlatType,
+    pub var_store: &'a [u8],
+    pub arg_idxes_store: &'a [I32Pair],
+    pub labels_idxes_store: &'a [I32Pair],
+    pub labels_store: &'a [u8],
+    pub funcs_store: &'a [u8],
+    pub instrs: &'a [FlatInstr],
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                  Constants                                 */
 /* -------------------------------------------------------------------------- */

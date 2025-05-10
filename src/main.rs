@@ -1,6 +1,7 @@
 use std::io::{self, Read};
 
 mod flatten;
+mod memfile;
 mod types;
 mod unflatten;
 
