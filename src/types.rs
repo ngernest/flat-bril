@@ -86,7 +86,6 @@ pub enum InstrKind {
 pub enum Type {
     Int,
     Bool,
-    Null,
 }
 
 /// The type of primitive values in Bril.    
@@ -371,7 +370,6 @@ impl fmt::Display for Type {
         match self {
             Type::Int => write!(f, "int"),
             Type::Bool => write!(f, "bool"),
-            Type::Null => write!(f, "null"),
         }
     }
 }
@@ -382,7 +380,6 @@ impl Type {
         match self {
             Type::Int => "int",
             Type::Bool => "bool",
-            Type::Null => "null",
         }
     }
 }
