@@ -60,13 +60,13 @@ pub struct I32Pair {
 #[derive(Debug, Clone, Copy, IntoBytes)]
 #[repr(C)]
 pub struct FlatInstr {
-    pub op: i32,
+    pub op: u32,
     pub dest: I32Pair,
     pub args: I32Pair,
     pub labels: I32Pair,
     pub funcs: I32Pair,
-    pub ty: Type,
-    pub value: BrilValue,
+    pub ty: FlatType,
+    pub value: FlatBrilValue,
 }
 
 #[repr(C)]
@@ -80,24 +80,96 @@ pub enum InstrKind {
 
 /// Primitive types in core Bril are either `int` or `bool`
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, Deserialize, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Type {
     Int,
     Bool,
+}
+
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy, Deserialize, IntoBytes)]
+#[serde(rename_all = "lowercase")]
+pub enum FlatType {
+    Int,
+    Bool,
     Null,
+}
+
+// impl From<Type> for FlatType {
+//     fn from(ty: Type) -> Self {
+//         match ty {
+//             Type::Bool => FlatType::Bool,
+//             Type::Int => FlatType::Int,
+//         }
+//     }
+// }
+
+impl From<Option<Type>> for FlatType {
+    fn from(ty_opt: Option<Type>) -> Self {
+        match ty_opt {
+            Some(Type::Bool) => FlatType::Bool,
+            Some(Type::Int) => FlatType::Int,
+            None => FlatType::Null,
+        }
+    }
+}
+
+impl TryFrom<FlatType> for Type {
+    type Error = ();
+
+    fn try_from(flat_ty: FlatType) -> Result<Self, Self::Error> {
+        match flat_ty {
+            FlatType::Bool => Ok(Type::Bool),
+            FlatType::Int => Ok(Type::Int),
+            FlatType::Null => Err(()),
+        }
+    }
 }
 
 /// The type of primitive values in Bril.    
 /// - Note: We call this enum `BrilValue` to avoid namespace clashes
 ///   with `serde_json::Value`
 /// - `SurrogateBool` is needed for padding reasons (to make zerocopy happy)
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(u64)]
 pub enum BrilValue {
     IntVal(i64),
     BoolVal(SurrogateBool),
+}
+
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes)]
+#[repr(u64)]
+pub enum FlatBrilValue {
+    IntVal(i64),
+    BoolVal(SurrogateBool),
     Null(SurrogateNull),
+}
+
+impl From<Option<BrilValue>> for FlatBrilValue {
+    fn from(value_opt: Option<BrilValue>) -> Self {
+        match value_opt {
+            Some(BrilValue::IntVal(i)) => FlatBrilValue::IntVal(i),
+            Some(BrilValue::BoolVal(surrogate_bool)) => {
+                FlatBrilValue::BoolVal(surrogate_bool)
+            }
+            None => FlatBrilValue::Null(SurrogateNull(0)),
+        }
+    }
+}
+
+impl TryFrom<FlatBrilValue> for BrilValue {
+    type Error = ();
+
+    fn try_from(flat_val: FlatBrilValue) -> Result<Self, Self::Error> {
+        match flat_val {
+            FlatBrilValue::BoolVal(surrogate_bool) => {
+                Ok(BrilValue::BoolVal(surrogate_bool))
+            }
+            FlatBrilValue::IntVal(i) => Ok(BrilValue::IntVal(i)),
+            FlatBrilValue::Null(_) => Err(()),
+        }
+    }
 }
 
 /// A null which is represented as a u64 to make zerocopy happy
@@ -154,6 +226,36 @@ impl Instr {
                 }
             }
             _ => InstrKind::ValueOp,
+        }
+    }
+}
+
+impl From<Option<(u32, u32)>> for I32Pair {
+    fn from(pair_opt: Option<(u32, u32)>) -> Self {
+        match pair_opt {
+            None => I32Pair {
+                first: -1,
+                second: -1,
+            },
+            Some((i, j)) => I32Pair {
+                first: i as i32,
+                second: j as i32,
+            },
+        }
+    }
+}
+
+// Converting `Instr` to `FlatInstr`
+impl From<Instr> for FlatInstr {
+    fn from(instr: Instr) -> Self {
+        FlatInstr {
+            op: instr.op,
+            dest: instr.dest.into(),
+            args: instr.args.into(),
+            labels: instr.labels.into(),
+            funcs: instr.funcs.into(),
+            ty: instr.ty.into(),
+            value: instr.value.into(),
         }
     }
 }
@@ -375,7 +477,6 @@ impl fmt::Display for Type {
         match self {
             Type::Int => write!(f, "int"),
             Type::Bool => write!(f, "bool"),
-            Type::Null => write!(f, "null"),
         }
     }
 }
@@ -386,7 +487,6 @@ impl Type {
         match self {
             Type::Int => "int",
             Type::Bool => "bool",
-            Type::Null => "null",
         }
     }
 }
@@ -397,9 +497,6 @@ impl fmt::Display for BrilValue {
             BrilValue::IntVal(n) => write!(f, "{}", n),
             BrilValue::BoolVal(b) => {
                 write!(f, "{}", bool::from(*b))
-            }
-            BrilValue::Null(_) => {
-                write!(f, "null")
             }
         }
     }

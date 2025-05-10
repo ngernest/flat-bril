@@ -116,9 +116,6 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
                                 .unwrap(),
                             );
                         }
-                        BrilValue::Null(_) => {
-                            panic!("found a null value, this shouldn't happen")
-                        }
                     }
                 }
 
