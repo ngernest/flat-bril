@@ -252,6 +252,30 @@ impl Instr {
     }
 }
 
+impl FlatInstr {
+    /// Retrieves the kind of an instruction (`Nop, Const, EffectOp, ValueOp`)
+    pub fn get_instr_kind(&self) -> InstrKind {
+        use Opcode::*;
+        let op = Opcode::u32_to_opcode(self.op);
+        match op {
+            Nop => InstrKind::Nop,
+            Const => InstrKind::Const,
+            Print | Jmp | Br | Ret => InstrKind::EffectOp,
+            Call => {
+                // Function calls can be both value op and effect op
+                // depending on whether the `dest` field of the instr
+                // is present
+                if self.dest.first == -1 && self.dest.second == -1{
+                    InstrKind::EffectOp
+                } else {
+                    InstrKind::ValueOp
+                }
+            }
+            _ => InstrKind::ValueOp,
+        }
+    }
+}
+
 impl From<(u32, u32)> for I32Pair {
     fn from(pair: (u32, u32)) -> Self {
         Self {

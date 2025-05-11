@@ -5,6 +5,7 @@ mod flatten;
 mod memfile;
 mod types;
 mod unflatten;
+mod interp;
 
 fn main() {
     // Enable stack backtrace for debugging
