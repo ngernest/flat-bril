@@ -55,7 +55,6 @@ fn write_bytes<'a>(buffer: &'a mut [u8], data: &[u8]) -> Option<&'a mut [u8]> {
 fn dump_to_buffer(instr_view: &InstrView, buffer: &mut [u8]) {
     // Write the table of contents to the buffer
     let toc = instr_view.get_sizes();
-    println!("original toc = {:?}", toc);
 
     let new_buffer = write_bump(buffer, &toc).unwrap();
 
@@ -85,8 +84,6 @@ fn slice_prefix<T: TryFromBytes + Immutable>(
     data: &[u8],
     size: usize,
 ) -> (&[T], &[u8]) {
-    println!("buffer = {:p}", data);
-
     <[T]>::try_ref_from_prefix_with_elems(data, size)
         .expect("Deserialization error in slice_prefix")
 }
@@ -100,7 +97,6 @@ fn read_toc(data: &[u8]) -> (&Toc, &[u8]) {
 /// Get an `InstrView` backed by the data in a byte buffer
 fn get_instr_view(data: &[u8]) -> InstrView {
     let (toc, buffer) = read_toc(data);
-    println!("read toc = {:?}", toc);
 
     let (func_name, new_buffer) = slice_prefix::<u8>(buffer, toc.func_name);
     let (func_args, new_buffer) =
@@ -144,8 +140,6 @@ pub fn main() {
         std::env::set_var("RUST_BACKTRACE", "1");
     }
 
-    println!("memfile");
-
     // Read in the JSON representation of a Bril file from stdin
     let mut buffer = String::new();
     std::io::stdin()
@@ -159,7 +153,10 @@ pub fn main() {
         .as_array()
         .expect("Expected `functions` to be a JSON array");
     for func in functions {
-        let instr_store = flatten::flatten_instrs(func);
+        let instr_store: InstrStore = flatten::flatten_instrs(func);
+        let instr_store_clone = instr_store.clone();
+
+        // Convert an `InstrStore` to an `InstrView`
         let flat_func_name = instr_store.func_name.as_slice();
         let flat_func_arg_vec: Vec<FlatFuncArg> = instr_store
             .func_args
@@ -213,6 +210,11 @@ pub fn main() {
         let new_instr_view = get_instr_view(&mut mmap);
         println!("read from buffer!");
 
-        println!("new_instr_view = {:#?}", new_instr_view);
+        assert_eq!(instr_view, new_instr_view);
+
+        let new_instr_store: InstrStore = new_instr_view.into();
+
+        assert_eq!(instr_store_clone, new_instr_store);
+        // println!("new_instr_view = {:#?}", new_instr_view);
     }
 }

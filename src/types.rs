@@ -131,6 +131,12 @@ impl TryFrom<FlatType> for Type {
     }
 }
 
+impl From<FlatType> for Option<Type> {
+    fn from(flat_type: FlatType) -> Self {
+        Result::ok(flat_type.try_into())
+    }
+}
+
 /// The type of primitive values in Bril.    
 /// - Note: We call this enum `BrilValue` to avoid namespace clashes
 ///   with `serde_json::Value`
@@ -173,6 +179,12 @@ impl TryFrom<FlatBrilValue> for BrilValue {
             FlatBrilValue::IntVal(i) => Ok(BrilValue::IntVal(i)),
             FlatBrilValue::Null(_) => Err(()),
         }
+    }
+}
+
+impl From<FlatBrilValue> for Option<BrilValue> {
+    fn from(flat_value: FlatBrilValue) -> Self {
+        Result::ok(flat_value.try_into())
     }
 }
 
@@ -285,6 +297,7 @@ impl From<(u32, u32)> for I32Pair {
     }
 }
 
+// Convention: None |-> an `I32Pair` where both fields are -1
 impl From<Option<(u32, u32)>> for I32Pair {
     fn from(pair_opt: Option<(u32, u32)>) -> Self {
         match pair_opt {
@@ -297,6 +310,27 @@ impl From<Option<(u32, u32)>> for I32Pair {
                 second: j as i32,
             },
         }
+    }
+}
+
+// Convention: `I32Pair {first: -1, second: -1} |-> None`
+impl From<I32Pair> for Option<(u32, u32)> {
+    fn from(i32pair: I32Pair) -> Self {
+        let I32Pair { first, second } = i32pair;
+        if first == -1 && second == -1 {
+            None
+        } else {
+            let first = first as u32;
+            let second = second as u32;
+            Some((first, second))
+        }
+    }
+}
+
+impl From<I32Pair> for (u32, u32) {
+    fn from(i32pair: I32Pair) -> Self {
+        let I32Pair { first, second } = i32pair;
+        (first as u32, second as u32)
     }
 }
 
@@ -316,6 +350,22 @@ impl From<Instr> for FlatInstr {
     }
 }
 
+impl From<FlatInstr> for Instr {
+    fn from(flat_instr: FlatInstr) -> Self {
+        Instr {
+            op: flat_instr.op,
+            label: flat_instr.label.into(),
+            dest: flat_instr.dest.into(),
+            ty: flat_instr.ty.into(),
+            value: flat_instr.value.into(),
+            args: flat_instr.args.into(),
+            instr_labels: flat_instr.instr_labels.into(),
+            funcs: flat_instr.funcs.into(),
+        }
+    }
+}
+
+/// The type of Bril opcodes
 #[repr(C)]
 #[derive(
     Debug,
@@ -438,7 +488,7 @@ impl Opcode {
 /// - The argument name, represented by the start & end indexes in the
 ///   `var_store` vector of `InstrStore`
 /// - The type of the argument
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct FuncArg {
     pub arg_name_idxes: (u32, u32),
     pub arg_type: Type,
@@ -446,7 +496,7 @@ pub struct FuncArg {
 
 /// Flat version of a `FuncArg`
 #[repr(packed)]
-#[derive(Debug, Clone, Copy, IntoBytes, Immutable, TryFromBytes)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable, TryFromBytes)]
 pub struct FlatFuncArg {
     pub arg_name_idxes: I32Pair,
     pub arg_type: FlatType,
@@ -457,6 +507,18 @@ impl From<FuncArg> for FlatFuncArg {
         Self {
             arg_name_idxes: func_arg.arg_name_idxes.into(),
             arg_type: func_arg.arg_type.into(),
+        }
+    }
+}
+
+impl From<FlatFuncArg> for FuncArg {
+    fn from(flat_func_arg: FlatFuncArg) -> Self {
+        Self {
+            arg_name_idxes: flat_func_arg.arg_name_idxes.into(),
+            arg_type: flat_func_arg
+                .arg_type
+                .try_into()
+                .expect("Can't convert `FlatType::Null` into a `Type`"),
         }
     }
 }
@@ -474,7 +536,7 @@ impl From<FuncArg> for FlatFuncArg {
 /// - there's only one function so `funcs_store` can just be Vec<u8>
 /// - `instrs_and_labels` is a vector containing the instructions/labels in
 ///   the order they appear in the source Bril file
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct InstrStore {
     pub func_name: Vec<u8>,
     pub func_args: Vec<FuncArg>,
@@ -487,8 +549,10 @@ pub struct InstrStore {
     pub instrs: Vec<Instr>,
 }
 
+/// `InstrView` is the same as `InstrStore`:
+/// all the slices in `InstrView` are references to the `Vec`s in `InstrStore`
 #[repr(packed)]
-#[derive(Debug, Clone, Immutable, IntoBytes)]
+#[derive(Debug, PartialEq, Clone, Immutable, IntoBytes)]
 pub struct InstrView<'a> {
     pub func_name: &'a [u8],
     pub func_args: &'a [FlatFuncArg],
@@ -499,6 +563,51 @@ pub struct InstrView<'a> {
     pub labels_store: &'a [u8],
     pub funcs_store: &'a [u8],
     pub instrs: &'a [FlatInstr],
+}
+
+impl<'a> From<InstrView<'_>> for InstrStore {
+    fn from(instr_view: InstrView) -> Self {
+        let func_name = instr_view.func_name.into();
+        let func_args: Vec<FuncArg> = instr_view
+            .func_args
+            .iter()
+            .map(|func_arg| FuncArg::from(*func_arg))
+            .collect();
+
+        let func_ret_ty = instr_view.func_ret_ty.into();
+
+        let var_store = instr_view.var_store.into();
+        let args_idxes_store: Vec<(u32, u32)> = instr_view
+            .arg_idxes_store
+            .iter()
+            .map(|arg_idxes| <(u32, u32)>::from(*arg_idxes))
+            .collect();
+        let labels_idxes_store: Vec<(u32, u32)> = instr_view
+            .labels_idxes_store
+            .iter()
+            .map(|label_idxes| <(u32, u32)>::from(*label_idxes))
+            .collect();
+
+        let labels_store = instr_view.labels_store.into();
+        let funcs_store = instr_view.funcs_store.into();
+        let instrs: Vec<Instr> = instr_view
+            .instrs
+            .iter()
+            .map(|flat_instr| Instr::from(*flat_instr))
+            .collect();
+
+        InstrStore {
+            func_name,
+            func_args,
+            func_ret_ty,
+            var_store,
+            args_idxes_store,
+            labels_idxes_store,
+            labels_store,
+            funcs_store,
+            instrs,
+        }
+    }
 }
 
 /// Table of contents for the flat Bril file
@@ -517,12 +626,12 @@ pub struct Toc {
 }
 
 impl<'a> InstrView<'a> {
-    /// Returns a `Toc` containing the sizes (in bytes) of each field
+    /// Returns a `Toc` containing the sizes (no. of elements) of each field
     /// in the `InstrView` struct
     pub fn get_sizes(&self) -> Toc {
         let func_name = self.func_name.len();
         let func_args = self.func_args.len();
-        let func_ret_ty = 1;
+        let func_ret_ty = 1; // Each function only has one return type
         let var_store = self.var_store.len();
         let arg_idxes_store = self.arg_idxes_store.len();
         let labels_idxes_store = self.labels_idxes_store.len();
