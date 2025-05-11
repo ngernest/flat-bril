@@ -1,31 +1,37 @@
-#![allow(dead_code, unused_variables)]
-
 use std::collections::HashMap;
 use std::str;
 
 use crate::types::*;
 
-// We map strings to values
-// (strings are the canonical representation of variables)
+// An environment maps variable names (`&str`s) to values
 pub type Environment<'a> = HashMap<&'a str, BrilValue>;
 
+/// Extracts the variable name (string) that occupies `start_idx` to `end_idx`
+/// (inclusive) in `instr_view.var_store`
+pub fn get_varname_str<'a>(
+    instr_view: &'a InstrView,
+    start_idx: u32,
+    end_idx: u32,
+) -> &'a str {
+    let start_idx = start_idx as usize;
+    let end_idx = end_idx as usize;
+    str::from_utf8(&instr_view.var_store[start_idx..=end_idx])
+        .expect("invalid utf-8")
+}
+
+/// Interprets all the instructions in `instr_view` using the supplied `env`
 pub fn execute<'a>(
-    view: &'a InstrView,
+    instr_view: &'a InstrView,
     env: &mut Environment<'a>,
 ) -> Result<(), String> {
-    for instr in view.instrs.iter() {
+    for instr in instr_view.instrs.iter() {
         let instr_type = instr.get_instr_kind();
         let op: Opcode = Opcode::u32_to_opcode(instr.op);
         match instr_type {
             InstrKind::Const => {
                 let (dest_start, dest_end): (u32, u32) = instr.dest.into();
-                let dest_start = dest_start as usize;
-                let dest_end = dest_end as usize;
-                let dest: &'a str =
-                    str::from_utf8(&view.var_store[dest_start..=dest_end])
-                        .expect("invalid utf-8");
-                let ty = instr.ty;
-                let value: BrilValue =
+                let dest = get_varname_str(instr_view, dest_start, dest_end);
+                let value =
                     instr.value.try_into().expect("Encountered a null value");
 
                 // Extend the environment so that `dest |-> value`
@@ -38,23 +44,19 @@ pub fn execute<'a>(
                     let arg_start = arg_start as usize;
                     let arg_end = arg_end as usize;
                     let arg_idxes_vec =
-                        &view.arg_idxes_store[arg_start..=arg_end];
+                        &instr_view.arg_idxes_store[arg_start..=arg_end];
                     assert!(
                         arg_idxes_vec.len() == 1,
-                        "print has more than 1 arg, malformed"
+                        "print instruction is malformed (has > 1 arg)"
                     );
 
                     let (arg_start_idx, arg_end_idx): (u32, u32) =
                         arg_idxes_vec[0].into();
-                    let arg_start_idx = arg_start_idx as usize;
-                    let arg_end_idx = arg_end_idx as usize;
-                    let arg: &str = str::from_utf8(
-                        &view.var_store[arg_start_idx..=arg_end_idx],
-                    )
-                    .expect("invalid utf-8");
-
-                    let value_of_arg = env.get(arg).unwrap();
-                    println!("{}", value_of_arg);
+                    let arg =
+                        get_varname_str(instr_view, arg_start_idx, arg_end_idx);
+                    let value_of_arg =
+                        env.get(arg).expect("arg missing from env");
+                    println!("{value_of_arg}");
                 } else {
                     todo!()
                 }
