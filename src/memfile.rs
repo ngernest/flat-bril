@@ -49,7 +49,14 @@ fn write_bytes<'a>(buffer: &'a mut [u8], data: &[u8]) -> Option<&'a mut [u8]> {
 
 /// Writes the `InstrView` to a buffer (note: `buffer` is modified in place)
 fn dump_to_buffer(instr_view: &InstrView, buffer: &mut [u8]) {
-    let new_buffer = write_bytes(buffer, instr_view.func_name).unwrap();
+    // Write the table of contents to the buffer
+    let toc = instr_view.get_sizes();
+    println!("toc = {:?}", toc);
+
+    let new_buffer = write_bump(buffer, &toc).unwrap();
+
+    // Write the acutal contents of the `InstrView` to the buffer
+    let new_buffer = write_bytes(new_buffer, instr_view.func_name).unwrap();
     let new_buffer = write_bump(new_buffer, instr_view.func_args).unwrap();
     let func_ret_ty = instr_view.func_ret_ty;
     let new_buffer = write_bump(new_buffer, &func_ret_ty).unwrap();

@@ -466,15 +466,15 @@ pub struct InstrView<'a> {
 #[derive(FromBytes, IntoBytes, Debug, Clone, Copy, Immutable, KnownLayout)]
 #[repr(packed)]
 pub struct Toc {
-    func_name: usize,
-    func_args: usize,
-    func_ret_ty: usize,
-    var_store: usize,
-    arg_idxes_store: usize,
-    labels_idxes_store: usize,
-    labels_store: usize,
-    funcs_store: usize,
-    instrs: usize,
+    pub func_name: usize,
+    pub func_args: usize,
+    pub func_ret_ty: usize,
+    pub var_store: usize,
+    pub arg_idxes_store: usize,
+    pub labels_idxes_store: usize,
+    pub labels_store: usize,
+    pub funcs_store: usize,
+    pub instrs: usize,
 }
 
 impl<'a> InstrView<'a> {
