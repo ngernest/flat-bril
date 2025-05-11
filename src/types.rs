@@ -49,7 +49,7 @@ pub struct I32Pair {
 
 /// Flattened representation of an instruction, amenable to `zerocopy`
 #[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
-#[repr(C)]
+#[repr(packed)]
 pub struct FlatInstr {
     pub op: u32,
     pub label: I32Pair,
@@ -75,17 +75,17 @@ pub enum InstrKind {
 #[derive(Debug, PartialEq, Clone, Copy, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Type {
-    Int,
-    Bool,
+    Int = 0,
+    Bool = 1,
 }
 
-#[repr(C)]
+#[repr(u64)]
 #[derive(Debug, PartialEq, Clone, Copy, Deserialize, IntoBytes, Immutable)]
 #[serde(rename_all = "lowercase")]
 pub enum FlatType {
-    Int,
-    Bool,
-    Null,
+    Int = 0,
+    Bool = 1,
+    Null = 2,
 }
 
 impl From<Option<Type>> for FlatType {

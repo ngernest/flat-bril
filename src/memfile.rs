@@ -1,11 +1,67 @@
 #![allow(dead_code, unused_imports)]
 use std::io::Read;
 
-use zerocopy::IntoBytes;
+use memmap2::MmapMut;
+use zerocopy::{Immutable, IntoBytes, SizeError};
 
 use crate::flatten;
 use crate::types::*;
 use memmap2::Mmap;
+
+/// Mmaps a new file, returning a handle to the mmap-ed buffer
+pub fn mmap_new_file(filename: &str, size: u64) -> MmapMut {
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(filename)
+        .unwrap();
+    file.set_len(size).unwrap();
+    let buffer = unsafe { MmapMut::map_mut(&file) };
+    buffer.unwrap()
+}
+
+/// Writes `data` to the first `len` bytes of `buffer`,
+/// (where `len = sizeof(data)`), & returns a mutable reference to
+/// `buffer[len..]` (i.e. the suffix of `buffer` after the first `len` bytes).
+/// - Note: Use `write_bump` when `data` has type `T` where `T` is *not* a slice
+///   (i.e. when the size of `T` is not statically known)
+fn write_bump<'a, T: IntoBytes + Immutable + ?Sized>(
+    buffer: &'a mut [u8],
+    data: &'a T,
+) -> Result<&'a mut [u8], SizeError<&'a T, &'a mut [u8]>> {
+    let len = size_of_val(data);
+    data.write_to_prefix(buffer)?;
+    Ok(&mut buffer[len..])
+}
+
+/// Writes `data` to the first `len` bytes of `buffer`
+/// (where `len = sizeof(data)`), and returns a mutable reference to
+/// `buffer[len..]` (i.e. the suffix of `buffer` after the first `len` bytes).
+/// - Note: `write_bytes` is a specialized version of `write_bump` where
+///  `data: &[u8]` (i.e. `data` is just a slice containing bytes)
+fn write_bytes<'a>(buffer: &'a mut [u8], data: &[u8]) -> Option<&'a mut [u8]> {
+    let len = data.len();
+    buffer[0..len].copy_from_slice(data);
+    Some(&mut buffer[len..])
+}
+
+/// Writes the `InstrView` to a buffer (note: `buffer` is modified in place)
+fn dump_to_buffer(instr_view: &InstrView, buffer: &mut [u8]) {
+    let new_buffer = write_bytes(buffer, instr_view.func_name).unwrap();
+    let new_buffer = write_bump(new_buffer, instr_view.func_args).unwrap();
+    let func_ret_ty = instr_view.func_ret_ty;
+    let new_buffer = write_bump(new_buffer, &func_ret_ty).unwrap();
+    let new_buffer = write_bytes(new_buffer, instr_view.var_store).unwrap();
+    let new_buffer =
+        write_bump(new_buffer, instr_view.arg_idxes_store).unwrap();
+    let new_buffer =
+        write_bump(new_buffer, instr_view.labels_idxes_store).unwrap();
+    let new_buffer = write_bytes(new_buffer, instr_view.labels_store).unwrap();
+    let new_buffer = write_bytes(new_buffer, instr_view.funcs_store).unwrap();
+    write_bump(new_buffer, instr_view.instrs).unwrap();
+}
 
 pub fn main() {
     // Enable stack backtrace for debugging
@@ -62,7 +118,7 @@ pub fn main() {
             .map(|instr| instr.into())
             .collect();
         let flat_instrs: &[FlatInstr] = flat_instrs_vec.as_slice();
-        let _instr_view = InstrView {
+        let instr_view = InstrView {
             func_name: flat_func_name,
             func_args: flat_func_args,
             func_ret_ty: flat_func_ret_ty,
@@ -73,6 +129,12 @@ pub fn main() {
             funcs_store: flat_funcs_store,
             instrs: flat_instrs,
         };
+
+        // TODO: come up with some file name and appropriate file size
+        let mut mmap = mmap_new_file("fbril", 1000000000);
+        dump_to_buffer(&instr_view, &mut mmap);
+
+        println!("wrote to buffer!");
 
         // TODO: figure out why we can't call `instr_view.as_bytes()` and use
         // zerocopy to write `instr_view` as bytes to disk
