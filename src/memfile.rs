@@ -1,4 +1,5 @@
 #![allow(dead_code, unused_imports)]
+use std::collections::HashMap;
 use std::io::Read;
 
 use memmap2::{Mmap, MmapMut};
@@ -6,6 +7,7 @@ use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, SizeError};
 use zerocopy::{TryFromBytes, ValidityError};
 
 use crate::flatten;
+use crate::interp::execute;
 use crate::types::*;
 
 /* -------------------------------------------------------------------------- */
@@ -202,6 +204,12 @@ pub fn main() {
             instrs: flat_instrs,
         };
 
+        let exec_result = execute(&instr_view, &mut HashMap::new());
+        if let Ok(()) = exec_result {
+            println!("succesful execution! exiting");
+            return;
+        }
+
         // TODO: come up with some file name and appropriate file size
         let mut mmap = mmap_new_file("fbril", 1000000000);
         dump_to_buffer(&instr_view, &mut mmap);
@@ -215,6 +223,5 @@ pub fn main() {
         let new_instr_store: InstrStore = new_instr_view.into();
 
         assert_eq!(instr_store_clone, new_instr_store);
-        // println!("new_instr_view = {:#?}", new_instr_view);
     }
 }

@@ -53,7 +53,8 @@ pub fn execute<'a>(
                     )
                     .expect("invalid utf-8");
 
-                    println!("{arg}");
+                    let value_of_arg = env.get(arg).unwrap();
+                    println!("{}", value_of_arg);
                 } else {
                     todo!()
                 }
