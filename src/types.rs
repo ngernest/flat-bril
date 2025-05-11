@@ -1,11 +1,13 @@
-#![allow(dead_code, clippy::repr_packed_without_abi)]
+#![allow(dead_code, clippy::repr_packed_without_abi, non_camel_case_types)]
 
 use core::panic;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use strum_macros::EnumIter;
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout};
+use zerocopy::{
+    FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, TryFromBytes,
+};
 
 /* -------------------------------------------------------------------------- */
 /*                                    Types                                   */
@@ -41,14 +43,14 @@ pub struct Instr {
 /// Struct representation of the pair `(i32, i32)`
 /// (we need this b/c `zerocopy` doesn't work for tuples)
 #[repr(C)]
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable, FromBytes)]
 pub struct I32Pair {
     pub first: i32,
     pub second: i32,
 }
 
 /// Flattened representation of an instruction, amenable to `zerocopy`
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable, TryFromBytes)]
 #[repr(packed)]
 pub struct FlatInstr {
     pub op: u32,
@@ -79,8 +81,18 @@ pub enum Type {
     Bool = 1,
 }
 
-#[repr(u64)]
-#[derive(Debug, PartialEq, Clone, Copy, Deserialize, IntoBytes, Immutable)]
+#[repr(usize)]
+#[derive(
+    Debug,
+    PartialEq,
+    Clone,
+    Copy,
+    Deserialize,
+    IntoBytes,
+    FromZeros,
+    Immutable,
+    KnownLayout,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum FlatType {
     Int = 0,
@@ -130,7 +142,7 @@ pub enum BrilValue {
     BoolVal(SurrogateBool),
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable, FromZeros)]
 #[repr(u64)]
 pub enum FlatBrilValue {
     IntVal(i64),
@@ -165,24 +177,27 @@ impl TryFrom<FlatBrilValue> for BrilValue {
 }
 
 /// A null which is represented as a u64 to make zerocopy happy
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable, FromBytes)]
 pub struct SurrogateNull(u64);
 
 /// A type isomorphic to `bool`, which is represented as a u64
 /// (so that it has the same representation as `BrilValue::IntVal`'s)
-#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable)]
-#[repr(u64)]
-pub enum SurrogateBool {
-    Fls = 0,
-    Tru = 1,
-}
+#[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable, FromBytes)]
+pub struct SurrogateBool(u64);
+
+// pub enum SurrogateBool {
+//     Fls = 0,
+//     Tru = 1,
+// }
 
 // `bool::from(surrogate_bool)` is useful
 impl From<SurrogateBool> for bool {
-    fn from(value: SurrogateBool) -> Self {
-        match value {
-            SurrogateBool::Fls => false,
-            SurrogateBool::Tru => true,
+    fn from(surrogate_bool: SurrogateBool) -> Self {
+        let b = surrogate_bool.0;
+        if b == 0 {
+            false
+        } else {
+            true
         }
     }
 }
@@ -191,9 +206,9 @@ impl From<SurrogateBool> for bool {
 impl From<bool> for SurrogateBool {
     fn from(b: bool) -> Self {
         if b {
-            SurrogateBool::Tru
+            SurrogateBool(0)
         } else {
-            SurrogateBool::Fls
+            SurrogateBool(1)
         }
     }
 }
@@ -406,8 +421,8 @@ pub struct FuncArg {
 }
 
 /// Flat version of a `FuncArg`
-#[repr(C)]
-#[derive(Debug, Clone, Copy, IntoBytes, Immutable)]
+#[repr(packed)]
+#[derive(Debug, Clone, Copy, IntoBytes, Immutable, TryFromBytes)]
 pub struct FlatFuncArg {
     pub arg_name_idxes: I32Pair,
     pub arg_type: FlatType,

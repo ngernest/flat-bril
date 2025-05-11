@@ -1,12 +1,16 @@
 #![allow(dead_code, unused_imports)]
 use std::io::Read;
 
-use memmap2::MmapMut;
+use memmap2::{Mmap, MmapMut};
+use zerocopy::TryFromBytes;
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, SizeError};
 
 use crate::flatten;
 use crate::types::*;
-use memmap2::Mmap;
+
+/* -------------------------------------------------------------------------- */
+/*                              Writing to buffer                             */
+/* -------------------------------------------------------------------------- */
 
 /// Mmaps a new file, returning a handle to the mmap-ed buffer
 pub fn mmap_new_file(filename: &str, size: u64) -> MmapMut {
@@ -70,17 +74,62 @@ fn dump_to_buffer(instr_view: &InstrView, buffer: &mut [u8]) {
     write_bump(new_buffer, instr_view.instrs).unwrap();
 }
 
-// /// Consume `size.len` items from a byte slice, skip the remainder of `size.capacity`
-// /// elements, and return the items and the rest of the slice.
-// fn slice_prefix<T: FromBytes + Immutable>(
-//     data: &[u8],
-//     size: Size,
-// ) -> (&[T], &[u8]) {
-//     let (prefix, rest) =
-//         <[T]>::ref_from_prefix_with_elems(data, size.len).unwrap();
-//     let pad = size_of::<T>() * (size.capacity - size.len);
-//     (prefix, &rest[pad..])
-// }
+/* -------------------------------------------------------------------------- */
+/*                             Reading from buffer                            */
+/* -------------------------------------------------------------------------- */
+
+/// Consume `size.len` items from a byte slice,
+/// skip the remainder of `size.capacity`
+/// elements, and return the items and the rest of the slice.
+fn slice_prefix<T: TryFromBytes + Immutable>(
+    data: &[u8],
+    size: usize,
+) -> (&[T], &[u8]) {
+    <[T]>::try_ref_from_prefix_with_elems(data, size).unwrap()
+}
+
+/// Reads the table of contents from a prefix of the byte buffer
+fn read_toc(data: &[u8]) -> (&Toc, &[u8]) {
+    let (toc, remaining_buffer) = Toc::ref_from_prefix(data).unwrap();
+    (toc, remaining_buffer)
+}
+
+/// Get an `InstrView` backed by the data in a byte buffer
+fn get_instr_view(data: &[u8]) -> InstrView {
+    let (toc, buffer) = read_toc(data);
+
+    let (func_name, new_buffer) = slice_prefix::<u8>(buffer, toc.func_name);
+    let (func_args, new_buffer) =
+        slice_prefix::<FlatFuncArg>(new_buffer, toc.func_args);
+    let (func_ret_ty, new_buffer) =
+        <FlatType>::try_ref_from_prefix(new_buffer).unwrap();
+    let (var_store, new_buffer) = slice_prefix::<u8>(new_buffer, toc.var_store);
+    let (arg_idxes_store, new_buffer) =
+        slice_prefix::<I32Pair>(new_buffer, toc.arg_idxes_store);
+    let (labels_idxes_store, new_buffer) =
+        slice_prefix::<I32Pair>(new_buffer, toc.labels_idxes_store);
+    let (labels_store, new_buffer) =
+        slice_prefix::<u8>(new_buffer, toc.labels_store);
+    let (funcs_store, new_buffer) =
+        slice_prefix::<u8>(new_buffer, toc.funcs_store);
+    let (instrs, _) = slice_prefix::<FlatInstr>(new_buffer, toc.instrs);
+
+    InstrView {
+        func_name,
+        func_args,
+        func_ret_ty: *func_ret_ty,
+        var_store,
+        arg_idxes_store,
+        labels_idxes_store,
+        labels_store,
+        funcs_store,
+        instrs,
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                Actual logic                                */
+/* -------------------------------------------------------------------------- */
 
 pub fn main() {
     // Enable stack backtrace for debugging
