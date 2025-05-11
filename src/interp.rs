@@ -1,11 +1,15 @@
 #![allow(dead_code)]
 
+use std::collections::HashMap;
+
 use crate::types::*;
+
+pub type Envrionment = HashMap<String, BrilValue>;
 
 pub fn execute<T: std::io::Write, U: std::io::Write>(
     view: &InstrView,
-    out: T,
-    input_args: &[String],
+    env: Envrionment,
+    out: T
 ) -> Result<(), String> {
     for instr in view.instrs.iter() {
         let instr_type = instr.get_instr_kind();
@@ -16,7 +20,6 @@ pub fn execute<T: std::io::Write, U: std::io::Write>(
             InstrKind::Nop => todo!(),
         }
     }
-
 
     Ok(())
 }
