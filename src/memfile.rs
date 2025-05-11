@@ -2,7 +2,7 @@
 use std::io::Read;
 
 use memmap2::MmapMut;
-use zerocopy::{Immutable, IntoBytes, SizeError};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, SizeError};
 
 use crate::flatten;
 use crate::types::*;
@@ -62,6 +62,18 @@ fn dump_to_buffer(instr_view: &InstrView, buffer: &mut [u8]) {
     let new_buffer = write_bytes(new_buffer, instr_view.funcs_store).unwrap();
     write_bump(new_buffer, instr_view.instrs).unwrap();
 }
+
+// /// Consume `size.len` items from a byte slice, skip the remainder of `size.capacity`
+// /// elements, and return the items and the rest of the slice.
+// fn slice_prefix<T: FromBytes + Immutable>(
+//     data: &[u8],
+//     size: Size,
+// ) -> (&[T], &[u8]) {
+//     let (prefix, rest) =
+//         <[T]>::ref_from_prefix_with_elems(data, size.len).unwrap();
+//     let pad = size_of::<T>() * (size.capacity - size.len);
+//     (prefix, &rest[pad..])
+// }
 
 pub fn main() {
     // Enable stack backtrace for debugging
@@ -135,8 +147,5 @@ pub fn main() {
         dump_to_buffer(&instr_view, &mut mmap);
 
         println!("wrote to buffer!");
-
-        // TODO: figure out why we can't call `instr_view.as_bytes()` and use
-        // zerocopy to write `instr_view` as bytes to disk
     }
 }

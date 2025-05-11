@@ -5,7 +5,7 @@ use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use strum_macros::EnumIter;
-use zerocopy::{Immutable, IntoBytes};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout};
 
 /* -------------------------------------------------------------------------- */
 /*                                    Types                                   */
@@ -460,6 +460,50 @@ pub struct InstrView<'a> {
     pub labels_store: &'a [u8],
     pub funcs_store: &'a [u8],
     pub instrs: &'a [FlatInstr],
+}
+
+/// Table of contents for the flat Bril file
+#[derive(FromBytes, IntoBytes, Debug, Clone, Copy, Immutable, KnownLayout)]
+#[repr(packed)]
+pub struct Toc {
+    func_name: usize,
+    func_args: usize,
+    func_ret_ty: usize,
+    var_store: usize,
+    arg_idxes_store: usize,
+    labels_idxes_store: usize,
+    labels_store: usize,
+    funcs_store: usize,
+    instrs: usize,
+}
+
+impl<'a> InstrView<'a> {
+    /// Returns a `Toc` containing the sizes (in bytes) of each field
+    /// in the `InstrView` struct
+    pub fn get_sizes(&self) -> Toc {
+        let func_name = self.func_name.len() * size_of::<u8>();
+        let func_args = self.func_args.len() * size_of::<FlatFuncArg>();
+        let func_ret_ty = size_of::<FlatType>();
+        let var_store = self.var_store.len() * size_of::<u8>();
+        let arg_idxes_store = self.arg_idxes_store.len() * size_of::<I32Pair>();
+        let labels_idxes_store =
+            self.labels_idxes_store.len() * size_of::<I32Pair>();
+        let labels_store = self.labels_store.len() * size_of::<u8>();
+        let funcs_store = self.funcs_store.len() * size_of::<u8>();
+        let instrs = self.instrs.len() * size_of::<FlatInstr>();
+
+        Toc {
+            func_name,
+            func_args,
+            func_ret_ty,
+            var_store,
+            arg_idxes_store,
+            labels_idxes_store,
+            labels_store,
+            funcs_store,
+            instrs,
+        }
+    }
 }
 
 /* -------------------------------------------------------------------------- */
