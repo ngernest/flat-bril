@@ -2,8 +2,8 @@
 use std::io::Read;
 
 use memmap2::{Mmap, MmapMut};
-use zerocopy::TryFromBytes;
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, SizeError};
+use zerocopy::{TryFromBytes, ValidityError};
 
 use crate::flatten;
 use crate::types::*;
@@ -55,7 +55,7 @@ fn write_bytes<'a>(buffer: &'a mut [u8], data: &[u8]) -> Option<&'a mut [u8]> {
 fn dump_to_buffer(instr_view: &InstrView, buffer: &mut [u8]) {
     // Write the table of contents to the buffer
     let toc = instr_view.get_sizes();
-    println!("toc = {:?}", toc);
+    println!("original toc = {:?}", toc);
 
     let new_buffer = write_bump(buffer, &toc).unwrap();
 
@@ -85,7 +85,10 @@ fn slice_prefix<T: TryFromBytes + Immutable>(
     data: &[u8],
     size: usize,
 ) -> (&[T], &[u8]) {
-    <[T]>::try_ref_from_prefix_with_elems(data, size).unwrap()
+    println!("buffer = {:p}", data);
+
+    <[T]>::try_ref_from_prefix_with_elems(data, size)
+        .expect("Deserialization error in slice_prefix")
 }
 
 /// Reads the table of contents from a prefix of the byte buffer
@@ -97,12 +100,16 @@ fn read_toc(data: &[u8]) -> (&Toc, &[u8]) {
 /// Get an `InstrView` backed by the data in a byte buffer
 fn get_instr_view(data: &[u8]) -> InstrView {
     let (toc, buffer) = read_toc(data);
+    println!("read toc = {:?}", toc);
 
     let (func_name, new_buffer) = slice_prefix::<u8>(buffer, toc.func_name);
     let (func_args, new_buffer) =
         slice_prefix::<FlatFuncArg>(new_buffer, toc.func_args);
+
     let (func_ret_ty, new_buffer) =
-        <FlatType>::try_ref_from_prefix(new_buffer).unwrap();
+        <FlatType>::try_read_from_prefix(new_buffer)
+            .expect("error deserializing func_ret_ty");
+
     let (var_store, new_buffer) = slice_prefix::<u8>(new_buffer, toc.var_store);
     let (arg_idxes_store, new_buffer) =
         slice_prefix::<I32Pair>(new_buffer, toc.arg_idxes_store);
@@ -117,7 +124,7 @@ fn get_instr_view(data: &[u8]) -> InstrView {
     InstrView {
         func_name,
         func_args,
-        func_ret_ty: *func_ret_ty,
+        func_ret_ty,
         var_store,
         arg_idxes_store,
         labels_idxes_store,
@@ -201,7 +208,11 @@ pub fn main() {
         // TODO: come up with some file name and appropriate file size
         let mut mmap = mmap_new_file("fbril", 1000000000);
         dump_to_buffer(&instr_view, &mut mmap);
-
         println!("wrote to buffer!");
+
+        let new_instr_view = get_instr_view(&mut mmap);
+        println!("read from buffer!");
+
+        println!("new_instr_view = {:#?}", new_instr_view);
     }
 }

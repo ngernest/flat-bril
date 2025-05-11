@@ -496,16 +496,15 @@ impl<'a> InstrView<'a> {
     /// Returns a `Toc` containing the sizes (in bytes) of each field
     /// in the `InstrView` struct
     pub fn get_sizes(&self) -> Toc {
-        let func_name = self.func_name.len() * size_of::<u8>();
-        let func_args = self.func_args.len() * size_of::<FlatFuncArg>();
-        let func_ret_ty = size_of::<FlatType>();
-        let var_store = self.var_store.len() * size_of::<u8>();
-        let arg_idxes_store = self.arg_idxes_store.len() * size_of::<I32Pair>();
-        let labels_idxes_store =
-            self.labels_idxes_store.len() * size_of::<I32Pair>();
-        let labels_store = self.labels_store.len() * size_of::<u8>();
-        let funcs_store = self.funcs_store.len() * size_of::<u8>();
-        let instrs = self.instrs.len() * size_of::<FlatInstr>();
+        let func_name = self.func_name.len();
+        let func_args = self.func_args.len();
+        let func_ret_ty = 1;
+        let var_store = self.var_store.len();
+        let arg_idxes_store = self.arg_idxes_store.len();
+        let labels_idxes_store = self.labels_idxes_store.len();
+        let labels_store = self.labels_store.len();
+        let funcs_store = self.funcs_store.len();
+        let instrs = self.instrs.len();
 
         Toc {
             func_name,
