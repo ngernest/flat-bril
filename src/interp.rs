@@ -37,21 +37,62 @@ pub fn execute<'a>(
                 // Extend the environment so that `dest |-> value`
                 env.insert(dest, value);
             }
-            InstrKind::ValueOp => todo!(),
+            InstrKind::ValueOp => {
+                if let Opcode::Add = op {
+                    let (dest_start, dest_end): (u32, u32) = instr.dest.into();
+                    let dest =
+                        get_varname_str(instr_view, dest_start, dest_end);
+
+                    let (args_start, args_end): (u32, u32) = instr.args.into();
+                    let arg_start = args_start as usize;
+                    let arg_end = args_end as usize;
+                    let args_idxes_slice =
+                        &instr_view.arg_idxes_store[arg_start..=arg_end];
+                    let args: Vec<&str> = args_idxes_slice
+                        .iter()
+                        .map(|i32pair| {
+                            let (start_idx, end_idx) =
+                                <(u32, u32)>::from(*i32pair);
+                            get_varname_str(instr_view, start_idx, end_idx)
+                        })
+                        .collect();
+                    assert!(
+                        args.len() == 2,
+                        "no. of args to arithmetic op is not 2"
+                    );
+                    let x = env
+                        .get(args[0])
+                        .expect("left operand missing from env");
+                    let y = env
+                        .get(args[1])
+                        .expect("right operand missing from env");
+                    match (x, y) {
+                        (BrilValue::IntVal(vx), BrilValue::IntVal(vy)) => {
+                            let value = BrilValue::IntVal(vx.wrapping_add(*vy));
+                            env.insert(dest, value);
+                        }
+                        (_, _) => {
+                            panic!("operands to arithmetic instruction are ill-typed")
+                        }
+                    }
+                } else {
+                    todo!()
+                }
+            }
             InstrKind::EffectOp => {
                 if let Opcode::Print = op {
-                    let (arg_start, arg_end): (u32, u32) = instr.args.into();
-                    let arg_start = arg_start as usize;
-                    let arg_end = arg_end as usize;
-                    let arg_idxes_vec =
+                    let (args_start, args_end): (u32, u32) = instr.args.into();
+                    let arg_start = args_start as usize;
+                    let arg_end = args_end as usize;
+                    let args_idxes_slice =
                         &instr_view.arg_idxes_store[arg_start..=arg_end];
                     assert!(
-                        arg_idxes_vec.len() == 1,
+                        args_idxes_slice.len() == 1,
                         "print instruction is malformed (has > 1 arg)"
                     );
 
                     let (arg_start_idx, arg_end_idx): (u32, u32) =
-                        arg_idxes_vec[0].into();
+                        args_idxes_slice[0].into();
                     let arg =
                         get_varname_str(instr_view, arg_start_idx, arg_end_idx);
                     let value_of_arg =
@@ -61,7 +102,9 @@ pub fn execute<'a>(
                     todo!()
                 }
             }
-            InstrKind::Nop => todo!(),
+            InstrKind::Nop => {
+                continue;
+            }
         }
     }
 
