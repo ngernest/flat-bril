@@ -212,10 +212,11 @@ pub fn main() {
         }
 
         // Compute the total no. of bytes required for the ToC + `InstrView`
-        let num_bytes_for_file = instr_view.total_size_in_bytes();
+        // Note: this isn't working fo rnow
+        // let num_bytes_for_file = instr_view.total_size_in_bytes();
 
         // TODO: generate some appropriate filename for the mmapped buffer
-        let mut mmap = mmap_new_file("fbril", num_bytes_for_file);
+        let mut mmap = mmap_new_file("fbril", 1000000000);
         dump_to_buffer(&instr_view, &mut mmap);
         println!("wrote to buffer!");
 
