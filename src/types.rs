@@ -100,43 +100,6 @@ pub enum FlatType {
     Null = 2,
 }
 
-impl From<Option<Type>> for FlatType {
-    fn from(ty_opt: Option<Type>) -> Self {
-        match ty_opt {
-            Some(Type::Bool) => FlatType::Bool,
-            Some(Type::Int) => FlatType::Int,
-            None => FlatType::Null,
-        }
-    }
-}
-
-impl From<Type> for FlatType {
-    fn from(ty: Type) -> Self {
-        match ty {
-            Type::Bool => FlatType::Bool,
-            Type::Int => FlatType::Int,
-        }
-    }
-}
-
-impl TryFrom<FlatType> for Type {
-    type Error = ();
-
-    fn try_from(flat_ty: FlatType) -> Result<Self, Self::Error> {
-        match flat_ty {
-            FlatType::Bool => Ok(Type::Bool),
-            FlatType::Int => Ok(Type::Int),
-            FlatType::Null => Err(()),
-        }
-    }
-}
-
-impl From<FlatType> for Option<Type> {
-    fn from(flat_type: FlatType) -> Self {
-        Result::ok(flat_type.try_into())
-    }
-}
-
 /// The type of primitive values in Bril.    
 /// - Note: We call this enum `BrilValue` to avoid namespace clashes
 ///   with `serde_json::Value`
@@ -156,38 +119,6 @@ pub enum FlatBrilValue {
     Null(SurrogateNull),
 }
 
-impl From<Option<BrilValue>> for FlatBrilValue {
-    fn from(value_opt: Option<BrilValue>) -> Self {
-        match value_opt {
-            Some(BrilValue::IntVal(i)) => FlatBrilValue::IntVal(i),
-            Some(BrilValue::BoolVal(surrogate_bool)) => {
-                FlatBrilValue::BoolVal(surrogate_bool)
-            }
-            None => FlatBrilValue::Null(SurrogateNull(0)),
-        }
-    }
-}
-
-impl TryFrom<FlatBrilValue> for BrilValue {
-    type Error = ();
-
-    fn try_from(flat_val: FlatBrilValue) -> Result<Self, Self::Error> {
-        match flat_val {
-            FlatBrilValue::BoolVal(surrogate_bool) => {
-                Ok(BrilValue::BoolVal(surrogate_bool))
-            }
-            FlatBrilValue::IntVal(i) => Ok(BrilValue::IntVal(i)),
-            FlatBrilValue::Null(_) => Err(()),
-        }
-    }
-}
-
-impl From<FlatBrilValue> for Option<BrilValue> {
-    fn from(flat_value: FlatBrilValue) -> Self {
-        Result::ok(flat_value.try_into())
-    }
-}
-
 /// A null which is represented as a u64 to make zerocopy happy
 #[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable, FromBytes)]
 pub struct SurrogateNull(u64);
@@ -196,30 +127,6 @@ pub struct SurrogateNull(u64);
 /// (so that it has the same representation as `BrilValue::IntVal`'s)
 #[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable, FromBytes)]
 pub struct SurrogateBool(u64);
-
-// pub enum SurrogateBool {
-//     Fls = 0,
-//     Tru = 1,
-// }
-
-// `bool::from(surrogate_bool)` is useful
-impl From<SurrogateBool> for bool {
-    fn from(surrogate_bool: SurrogateBool) -> Self {
-        let b = surrogate_bool.0;
-        b != 0
-    }
-}
-
-// For `b:bool`, `b.into()` converts it to a `SurrogateBool`
-impl From<bool> for SurrogateBool {
-    fn from(b: bool) -> Self {
-        if b {
-            SurrogateBool(0)
-        } else {
-            SurrogateBool(1)
-        }
-    }
-}
 
 impl Instr {
     /// Represents a label as an `Instr` where
@@ -280,83 +187,6 @@ impl FlatInstr {
                 }
             }
             _ => InstrKind::ValueOp,
-        }
-    }
-}
-
-impl From<(u32, u32)> for I32Pair {
-    fn from(pair: (u32, u32)) -> Self {
-        Self {
-            first: pair.0 as i32,
-            second: pair.1 as i32,
-        }
-    }
-}
-
-// Convention: None |-> an `I32Pair` where both fields are -1
-impl From<Option<(u32, u32)>> for I32Pair {
-    fn from(pair_opt: Option<(u32, u32)>) -> Self {
-        match pair_opt {
-            None => I32Pair {
-                first: -1,
-                second: -1,
-            },
-            Some((i, j)) => I32Pair {
-                first: i as i32,
-                second: j as i32,
-            },
-        }
-    }
-}
-
-// Convention: `I32Pair {first: -1, second: -1} |-> None`
-impl From<I32Pair> for Option<(u32, u32)> {
-    fn from(i32pair: I32Pair) -> Self {
-        let I32Pair { first, second } = i32pair;
-        if first == -1 && second == -1 {
-            None
-        } else {
-            let first = first as u32;
-            let second = second as u32;
-            Some((first, second))
-        }
-    }
-}
-
-impl From<I32Pair> for (u32, u32) {
-    fn from(i32pair: I32Pair) -> Self {
-        let I32Pair { first, second } = i32pair;
-        (first as u32, second as u32)
-    }
-}
-
-// Converting `Instr` to `FlatInstr`
-impl From<Instr> for FlatInstr {
-    fn from(instr: Instr) -> Self {
-        FlatInstr {
-            op: instr.op,
-            label: instr.label.into(),
-            dest: instr.dest.into(),
-            args: instr.args.into(),
-            instr_labels: instr.instr_labels.into(),
-            funcs: instr.funcs.into(),
-            ty: instr.ty.into(),
-            value: instr.value.into(),
-        }
-    }
-}
-
-impl From<FlatInstr> for Instr {
-    fn from(flat_instr: FlatInstr) -> Self {
-        Instr {
-            op: flat_instr.op,
-            label: flat_instr.label.into(),
-            dest: flat_instr.dest.into(),
-            ty: flat_instr.ty.into(),
-            value: flat_instr.value.into(),
-            args: flat_instr.args.into(),
-            instr_labels: flat_instr.instr_labels.into(),
-            funcs: flat_instr.funcs.into(),
         }
     }
 }
@@ -519,27 +349,6 @@ pub struct FlatFuncArg {
     pub arg_type: FlatType,
 }
 
-impl From<FuncArg> for FlatFuncArg {
-    fn from(func_arg: FuncArg) -> Self {
-        Self {
-            arg_name_idxes: func_arg.arg_name_idxes.into(),
-            arg_type: func_arg.arg_type.into(),
-        }
-    }
-}
-
-impl From<FlatFuncArg> for FuncArg {
-    fn from(flat_func_arg: FlatFuncArg) -> Self {
-        Self {
-            arg_name_idxes: flat_func_arg.arg_name_idxes.into(),
-            arg_type: flat_func_arg
-                .arg_type
-                .try_into()
-                .expect("Can't convert `FlatType::Null` into a `Type`"),
-        }
-    }
-}
-
 /// Struct that stores all the instrs and the args/dest/labels/funcs arrays
 /// in the same place (note: we create one `InstrStore` per Bril function)
 /// - The `func_name` field stores the name of the Bril function
@@ -580,51 +389,6 @@ pub struct InstrView<'a> {
     pub labels_store: &'a [u8],
     pub funcs_store: &'a [u8],
     pub instrs: &'a [FlatInstr],
-}
-
-impl From<InstrView<'_>> for InstrStore {
-    fn from(instr_view: InstrView) -> Self {
-        let func_name = instr_view.func_name.into();
-        let func_args: Vec<FuncArg> = instr_view
-            .func_args
-            .iter()
-            .map(|func_arg| FuncArg::from(*func_arg))
-            .collect();
-
-        let func_ret_ty = instr_view.func_ret_ty.into();
-
-        let var_store = instr_view.var_store.into();
-        let args_idxes_store: Vec<(u32, u32)> = instr_view
-            .arg_idxes_store
-            .iter()
-            .map(|arg_idxes| <(u32, u32)>::from(*arg_idxes))
-            .collect();
-        let labels_idxes_store: Vec<(u32, u32)> = instr_view
-            .labels_idxes_store
-            .iter()
-            .map(|label_idxes| <(u32, u32)>::from(*label_idxes))
-            .collect();
-
-        let labels_store = instr_view.labels_store.into();
-        let funcs_store = instr_view.funcs_store.into();
-        let instrs: Vec<Instr> = instr_view
-            .instrs
-            .iter()
-            .map(|flat_instr| Instr::from(*flat_instr))
-            .collect();
-
-        InstrStore {
-            func_name,
-            func_args,
-            func_ret_ty,
-            var_store,
-            args_idxes_store,
-            labels_idxes_store,
-            labels_store,
-            funcs_store,
-            instrs,
-        }
-    }
 }
 
 /// Table of contents for the flat Bril file
@@ -755,6 +519,241 @@ pub const OPCODE_IDX: [(usize, usize); NUM_OPCODES] = [
     (49, 51), // Nop
     (52, 56), // Const
 ];
+
+/* -------------------------------------------------------------------------- */
+/*                          Converting between types                          */
+/* -------------------------------------------------------------------------- */
+
+impl From<Option<Type>> for FlatType {
+    fn from(ty_opt: Option<Type>) -> Self {
+        match ty_opt {
+            Some(Type::Bool) => FlatType::Bool,
+            Some(Type::Int) => FlatType::Int,
+            None => FlatType::Null,
+        }
+    }
+}
+
+impl From<Type> for FlatType {
+    fn from(ty: Type) -> Self {
+        match ty {
+            Type::Bool => FlatType::Bool,
+            Type::Int => FlatType::Int,
+        }
+    }
+}
+
+impl TryFrom<FlatType> for Type {
+    type Error = ();
+
+    fn try_from(flat_ty: FlatType) -> Result<Self, Self::Error> {
+        match flat_ty {
+            FlatType::Bool => Ok(Type::Bool),
+            FlatType::Int => Ok(Type::Int),
+            FlatType::Null => Err(()),
+        }
+    }
+}
+
+impl From<FlatType> for Option<Type> {
+    fn from(flat_type: FlatType) -> Self {
+        Result::ok(flat_type.try_into())
+    }
+}
+
+impl From<Option<BrilValue>> for FlatBrilValue {
+    fn from(value_opt: Option<BrilValue>) -> Self {
+        match value_opt {
+            Some(BrilValue::IntVal(i)) => FlatBrilValue::IntVal(i),
+            Some(BrilValue::BoolVal(surrogate_bool)) => {
+                FlatBrilValue::BoolVal(surrogate_bool)
+            }
+            None => FlatBrilValue::Null(SurrogateNull(0)),
+        }
+    }
+}
+
+impl TryFrom<FlatBrilValue> for BrilValue {
+    type Error = ();
+
+    fn try_from(flat_val: FlatBrilValue) -> Result<Self, Self::Error> {
+        match flat_val {
+            FlatBrilValue::BoolVal(surrogate_bool) => {
+                Ok(BrilValue::BoolVal(surrogate_bool))
+            }
+            FlatBrilValue::IntVal(i) => Ok(BrilValue::IntVal(i)),
+            FlatBrilValue::Null(_) => Err(()),
+        }
+    }
+}
+
+impl From<FlatBrilValue> for Option<BrilValue> {
+    fn from(flat_value: FlatBrilValue) -> Self {
+        Result::ok(flat_value.try_into())
+    }
+}
+
+// `bool::from(surrogate_bool)` is useful
+impl From<SurrogateBool> for bool {
+    fn from(surrogate_bool: SurrogateBool) -> Self {
+        let b = surrogate_bool.0;
+        b != 0
+    }
+}
+
+// For `b:bool`, `b.into()` converts it to a `SurrogateBool`
+impl From<bool> for SurrogateBool {
+    fn from(b: bool) -> Self {
+        if b {
+            SurrogateBool(0)
+        } else {
+            SurrogateBool(1)
+        }
+    }
+}
+
+impl From<(u32, u32)> for I32Pair {
+    fn from(pair: (u32, u32)) -> Self {
+        Self {
+            first: pair.0 as i32,
+            second: pair.1 as i32,
+        }
+    }
+}
+
+// Convention: None |-> an `I32Pair` where both fields are -1
+impl From<Option<(u32, u32)>> for I32Pair {
+    fn from(pair_opt: Option<(u32, u32)>) -> Self {
+        match pair_opt {
+            None => I32Pair {
+                first: -1,
+                second: -1,
+            },
+            Some((i, j)) => I32Pair {
+                first: i as i32,
+                second: j as i32,
+            },
+        }
+    }
+}
+
+// Convention: `I32Pair {first: -1, second: -1} |-> None`
+impl From<I32Pair> for Option<(u32, u32)> {
+    fn from(i32pair: I32Pair) -> Self {
+        let I32Pair { first, second } = i32pair;
+        if first == -1 && second == -1 {
+            None
+        } else {
+            let first = first as u32;
+            let second = second as u32;
+            Some((first, second))
+        }
+    }
+}
+
+impl From<I32Pair> for (u32, u32) {
+    fn from(i32pair: I32Pair) -> Self {
+        let I32Pair { first, second } = i32pair;
+        (first as u32, second as u32)
+    }
+}
+
+// Converting `Instr` to `FlatInstr`
+impl From<Instr> for FlatInstr {
+    fn from(instr: Instr) -> Self {
+        FlatInstr {
+            op: instr.op,
+            label: instr.label.into(),
+            dest: instr.dest.into(),
+            args: instr.args.into(),
+            instr_labels: instr.instr_labels.into(),
+            funcs: instr.funcs.into(),
+            ty: instr.ty.into(),
+            value: instr.value.into(),
+        }
+    }
+}
+
+impl From<FlatInstr> for Instr {
+    fn from(flat_instr: FlatInstr) -> Self {
+        Instr {
+            op: flat_instr.op,
+            label: flat_instr.label.into(),
+            dest: flat_instr.dest.into(),
+            ty: flat_instr.ty.into(),
+            value: flat_instr.value.into(),
+            args: flat_instr.args.into(),
+            instr_labels: flat_instr.instr_labels.into(),
+            funcs: flat_instr.funcs.into(),
+        }
+    }
+}
+
+impl From<FuncArg> for FlatFuncArg {
+    fn from(func_arg: FuncArg) -> Self {
+        Self {
+            arg_name_idxes: func_arg.arg_name_idxes.into(),
+            arg_type: func_arg.arg_type.into(),
+        }
+    }
+}
+
+impl From<FlatFuncArg> for FuncArg {
+    fn from(flat_func_arg: FlatFuncArg) -> Self {
+        Self {
+            arg_name_idxes: flat_func_arg.arg_name_idxes.into(),
+            arg_type: flat_func_arg
+                .arg_type
+                .try_into()
+                .expect("Can't convert `FlatType::Null` into a `Type`"),
+        }
+    }
+}
+
+impl From<InstrView<'_>> for InstrStore {
+    fn from(instr_view: InstrView) -> Self {
+        let func_name = instr_view.func_name.into();
+        let func_args: Vec<FuncArg> = instr_view
+            .func_args
+            .iter()
+            .map(|func_arg| FuncArg::from(*func_arg))
+            .collect();
+
+        let func_ret_ty = instr_view.func_ret_ty.into();
+
+        let var_store = instr_view.var_store.into();
+        let args_idxes_store: Vec<(u32, u32)> = instr_view
+            .arg_idxes_store
+            .iter()
+            .map(|arg_idxes| <(u32, u32)>::from(*arg_idxes))
+            .collect();
+        let labels_idxes_store: Vec<(u32, u32)> = instr_view
+            .labels_idxes_store
+            .iter()
+            .map(|label_idxes| <(u32, u32)>::from(*label_idxes))
+            .collect();
+
+        let labels_store = instr_view.labels_store.into();
+        let funcs_store = instr_view.funcs_store.into();
+        let instrs: Vec<Instr> = instr_view
+            .instrs
+            .iter()
+            .map(|flat_instr| Instr::from(*flat_instr))
+            .collect();
+
+        InstrStore {
+            func_name,
+            func_args,
+            func_ret_ty,
+            var_store,
+            args_idxes_store,
+            labels_idxes_store,
+            labels_store,
+            funcs_store,
+            instrs,
+        }
+    }
+}
 
 /* -------------------------------------------------------------------------- */
 /*                               Pretty-Printing                              */

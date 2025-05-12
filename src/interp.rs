@@ -72,15 +72,15 @@ pub fn get_labels_vec<'a>(
         .collect()
 }
 
-pub fn get_label_idxes<'a>(
-    instr_view: &'a InstrView,
-    labels_start: u32,
-    labels_end: u32,
-) -> &'a [I32Pair] {
-    let label_start = labels_start as usize;
-    let label_end = labels_end as usize;
-    &instr_view.labels_idxes_store[label_start..=label_end]
-}
+// pub fn get_label_idxes<'a>(
+//     instr_view: &'a InstrView,
+//     labels_start: u32,
+//     labels_end: u32,
+// ) -> &'a [I32Pair] {
+//     let label_start = labels_start as usize;
+//     let label_end = labels_end as usize;
+//     &instr_view.labels_idxes_store[label_start..=label_end]
+// }
 
 /// Interprets a unary value operation (`not` and `id`)
 /// (panics if `op` is not an unop)
@@ -233,34 +233,29 @@ pub fn interp_instr_view<'a>(
                     // TODO: figure out why this doesn't work for `jmp.bril`
 
                     // Compute the start/end idx of the label in the `labels_store`
-                    let (labels_start, labels_end): (u32, u32) =
-                        instr.instr_labels.into();
+                    let label_idxes = instr.instr_labels;
 
-                    println!(
-                        "original label index = {:?}, {:?}",
-                        labels_start, labels_end
-                    );
-                    let label_idxes_slice =
-                        get_label_idxes(instr_view, labels_start, labels_end);
-                    assert!(
-                        label_idxes_slice.len() == 1,
-                        "jump instruction is malformed (has != 1 label)"
+                    println!("original label index = {:?}", label_idxes);
+                    let label_str = get_label_name(
+                        instr_view,
+                        label_idxes.first as u32,
+                        label_idxes.second as u32,
                     );
 
-                    println!("label_idxes_slice = {:?}", label_idxes_slice);
-
-                    let label_idxes = label_idxes_slice[0];
-
-                    println!("label_idxes = {:?}", label_idxes);
+                    println!("label_str = {}", label_str);
 
                     let all_instrs = instr_view.instrs;
-                    println!("instrs = {:#?}", all_instrs);
 
                     // Iterate over the list of instrs to find the index (PC)
                     // of the instr corresponding to the label
                     let pc_of_label =
                         instr_view.instrs.iter().position(|instr| {
+                            let opcode = instr.op;
                             let candidate_lbl_idx = instr.label;
+                            println!(
+                                "op = {:?}, candidate_lbl_idx = {:?}",
+                                opcode, candidate_lbl_idx
+                            );
                             candidate_lbl_idx == label_idxes
                         });
 

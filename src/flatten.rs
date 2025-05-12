@@ -149,6 +149,11 @@ pub fn flatten_instrs(func_json: &serde_json::Value) -> InstrStore {
             all_labels.extend(label_bytes);
             let end_idx = (all_labels.len() - 1) as u32;
 
+            println!(
+                "label = {}, start_idx = {}, end_idx = {}",
+                label, start_idx, end_idx
+            );
+
             all_instrs_labels.push(Instr::make_label((start_idx, end_idx)));
 
             continue;
