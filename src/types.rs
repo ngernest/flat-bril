@@ -110,6 +110,16 @@ pub enum BrilValue {
     BoolVal(SurrogateBool),
 }
 
+impl BrilValue {
+    /// Extracts the type from a `BrilValue`
+    pub fn get_type(&self) -> Type {
+        match self {
+            BrilValue::IntVal(_) => Type::Int,
+            BrilValue::BoolVal(_) => Type::Bool
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Copy, IntoBytes, Immutable, FromZeros)]
 #[repr(u64)]
 pub enum FlatBrilValue {

@@ -205,8 +205,8 @@ pub fn main() {
         };
 
         let exec_result =
-            interp::interp_instr_view(&instr_view, &mut HashMap::new());
-        if let Ok(()) = exec_result {
+            interp::interp_instr_view(&instr_view, &mut HashMap::new(), &mut HashMap::new());
+        if let Ok(_) = exec_result {
             println!("succesful execution! exiting");
             return;
         }
