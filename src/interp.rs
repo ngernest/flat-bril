@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use std::collections::HashMap;
 use std::str;
 
@@ -60,7 +61,8 @@ pub fn get_labels<'a>(
 ) -> Vec<&'a str> {
     let label_start = labels_start as usize;
     let label_end = labels_end as usize;
-    let labels_idxes_slice = &instr_view.labels_idxes_store[label_start..=label_end];
+    let labels_idxes_slice =
+        &instr_view.labels_idxes_store[label_start..=label_end];
     labels_idxes_slice
         .iter()
         .map(|i32pair| {
@@ -78,7 +80,7 @@ pub fn interp_unop<'a>(
     instr: &FlatInstr,
     env: &mut Environment<'a>,
 ) {
-    if !Opcode::is_unop(op) {
+    if !op.is_unop() {
         panic!("interp_unop called on a non-unary value operation");
     }
 
@@ -116,7 +118,7 @@ pub fn interp_binop<'a>(
     use BrilValue::*;
     use Opcode::*;
 
-    if !Opcode::is_binop(op) {
+    if !op.is_binop() {
         panic!("interp_binop called on a non-binary value operation");
     }
 
@@ -218,8 +220,10 @@ pub fn interp_instr_view<'a>(
                     println!("{value_of_arg}");
                     current_instr_ptr += 1;
                 } else if let Opcode::Jmp = op {
-                    let (labels_start, labels_end): (u32, u32) = instr.instr_labels.into();
-                    let labels = get_labels(instr_view, labels_start, labels_end);
+                    let (labels_start, labels_end): (u32, u32) =
+                        instr.instr_labels.into();
+                    let labels =
+                        get_labels(instr_view, labels_start, labels_end);
                     assert!(
                         labels.len() == 1,
                         "jump instruction is malformed (has != 1 label)"
@@ -237,8 +241,10 @@ pub fn interp_instr_view<'a>(
                     let value_of_arg =
                         env.get(arg).expect("arg missing from env");
 
-                    let (labels_start, labels_end): (u32, u32) = instr.instr_labels.into();
-                    let labels = get_labels(instr_view, labels_start, labels_end);
+                    let (labels_start, labels_end): (u32, u32) =
+                        instr.instr_labels.into();
+                    let labels =
+                        get_labels(instr_view, labels_start, labels_end);
                     assert!(
                         labels.len() == 2,
                         "br instruction is malformed (has != 2 labels)"
@@ -247,9 +253,7 @@ pub fn interp_instr_view<'a>(
                     let label1 = labels[0];
                     let label2 = labels[1];
                     // TODO: finish br logic
-                }
-                
-                else {
+                } else {
                     todo!()
                 }
             }

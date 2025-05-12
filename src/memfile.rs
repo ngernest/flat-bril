@@ -14,7 +14,7 @@ use crate::types::*;
 /*                              Writing to buffer                             */
 /* -------------------------------------------------------------------------- */
 
-/// Mmaps a new file, returning a handle to the mmap-ed buffer
+/// Mmaps a new file with `size` bytes, returning a handle to the mmap-ed buffer
 pub fn mmap_new_file(filename: &str, size: u64) -> MmapMut {
     let file = std::fs::OpenOptions::new()
         .read(true)
@@ -211,8 +211,11 @@ pub fn main() {
             return;
         }
 
-        // TODO: come up with some file name and appropriate file size
-        let mut mmap = mmap_new_file("fbril", 1000000000);
+        // Compute the total no. of bytes required for the ToC + `InstrView`
+        let num_bytes_for_file = instr_view.total_size_in_bytes();
+
+        // TODO: generate some appropriate filename for the mmapped buffer
+        let mut mmap = mmap_new_file("fbril", num_bytes_for_file);
         dump_to_buffer(&instr_view, &mut mmap);
         println!("wrote to buffer!");
 

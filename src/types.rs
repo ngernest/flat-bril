@@ -628,6 +628,8 @@ impl From<InstrView<'_>> for InstrStore {
 }
 
 /// Table of contents for the flat Bril file
+/// (each field stores the no. of elements in the corresponding slice
+/// in the `InstrView`)
 #[derive(FromBytes, IntoBytes, Debug, Clone, Copy, Immutable, KnownLayout)]
 #[repr(packed)]
 pub struct Toc {
@@ -643,7 +645,7 @@ pub struct Toc {
 }
 
 impl InstrView<'_> {
-    /// Returns a `Toc` containing the sizes (no. of elements) of each field
+    /// Returns a `Toc` containing the no. of elements of each field
     /// in the `InstrView` struct
     pub fn get_sizes(&self) -> Toc {
         let func_name = self.func_name.len();
@@ -667,6 +669,35 @@ impl InstrView<'_> {
             funcs_store,
             instrs,
         }
+    }
+
+    /// Computes the total no. of bytes occupied by the Toc +
+    /// the contents of the `InstrView`
+    pub fn total_size_in_bytes(&self) -> u64 {
+        let toc_num_bytes = size_of::<Toc>();
+        let func_name_num_bytes = self.func_name.len() * size_of::<u8>();
+        let func_args_num_bytes =
+            self.func_args.len() * size_of::<FlatFuncArg>();
+        let func_ret_ty_num_bytes = size_of::<FlatType>();
+        let var_store_num_bytes = self.var_store.len() * size_of::<u8>();
+        let arg_idxes_store_num_bytes =
+            self.arg_idxes_store.len() * size_of::<I32Pair>();
+        let labels_idxes_store_num_bytes =
+            self.labels_idxes_store.len() * size_of::<I32Pair>();
+        let labels_store_num_bytes = self.labels_store.len() * size_of::<u8>();
+        let funcs_store_num_bytes = self.funcs_store.len() * size_of::<u8>();
+        let instrs_num_bytes = self.instrs.len() * size_of::<FlatInstr>();
+
+        (toc_num_bytes
+            + func_name_num_bytes
+            + func_args_num_bytes
+            + func_ret_ty_num_bytes
+            + var_store_num_bytes
+            + arg_idxes_store_num_bytes
+            + labels_idxes_store_num_bytes
+            + labels_store_num_bytes
+            + funcs_store_num_bytes
+            + instrs_num_bytes) as u64
     }
 }
 
