@@ -38,6 +38,38 @@ pub fn get_args<'a>(
         .collect()
 }
 
+/// Extracts the label name (string) that occupies `start_idx` to `end_idx`
+/// (inclusive) in `instr_view.labels_store`
+pub fn get_label_name<'a>(
+    instr_view: &'a InstrView,
+    start_idx: u32,
+    end_idx: u32,
+) -> &'a str {
+    let start_idx = start_idx as usize;
+    let end_idx = end_idx as usize;
+    str::from_utf8(&instr_view.labels_store[start_idx..=end_idx])
+        .expect("invalid utf-8")
+}
+
+/// Extracts a vec of labels that correspond to the
+/// `labels_start` to `labels_end` indices (inclusive) in `instr_view.labels_idxes_store`
+pub fn get_labels<'a>(
+    instr_view: &'a InstrView,
+    labels_start: u32,
+    labels_end: u32,
+) -> Vec<&'a str> {
+    let label_start = labels_start as usize;
+    let label_end = labels_end as usize;
+    let labels_idxes_slice = &instr_view.labels_idxes_store[label_start..=label_end];
+    labels_idxes_slice
+        .iter()
+        .map(|i32pair| {
+            let (start_idx, end_idx) = <(u32, u32)>::from(*i32pair);
+            get_label_name(instr_view, start_idx, end_idx)
+        })
+        .collect()
+}
+
 /// Interprets a unary value operation (`not` and `id`)
 /// (panics if `op` is not an unop)
 pub fn interp_unop<'a>(
@@ -139,7 +171,10 @@ pub fn interp_instr_view<'a>(
     instr_view: &'a InstrView,
     env: &mut Environment<'a>,
 ) -> Result<(), String> {
-    for instr in instr_view.instrs.iter() {
+    let mut current_instr_ptr = 0; // Initialize program counter
+
+    while current_instr_ptr < instr_view.instrs.len() {
+        let instr = &instr_view.instrs[current_instr_ptr];
         let instr_type = instr.get_instr_kind();
         let op: Opcode = Opcode::u32_to_opcode(instr.op);
         match instr_type {
@@ -151,6 +186,7 @@ pub fn interp_instr_view<'a>(
 
                 // Extend the environment so that `dest |-> value`
                 env.insert(dest, value);
+                current_instr_ptr += 1;
             }
             InstrKind::ValueOp => {
                 if Opcode::is_binop(op) {
@@ -165,6 +201,7 @@ pub fn interp_instr_view<'a>(
                         }
                     }
                 }
+                current_instr_ptr += 1;
             }
             InstrKind::EffectOp => {
                 if let Opcode::Print = op {
@@ -179,12 +216,45 @@ pub fn interp_instr_view<'a>(
                     let value_of_arg =
                         env.get(arg).expect("arg missing from env");
                     println!("{value_of_arg}");
-                } else {
+                    current_instr_ptr += 1;
+                } else if let Opcode::Jmp = op {
+                    let (labels_start, labels_end): (u32, u32) = instr.instr_labels.into();
+                    let labels = get_labels(instr_view, labels_start, labels_end);
+                    assert!(
+                        labels.len() == 1,
+                        "jump instruction is malformed (has != 1 label)"
+                    );
+                    let target_label = labels[0];
+                    // TODO: finish jmp logic, find target_label in instrs list and set current_instr_ptr to this index
+                } else if let Opcode::Br = op {
+                    let (args_start, args_end): (u32, u32) = instr.args.into();
+                    let args = get_args(instr_view, args_start, args_end);
+                    assert!(
+                        args.len() == 1,
+                        "br instruction must only have 1 arg"
+                    );
+                    let arg = args[0];
+                    let value_of_arg =
+                        env.get(arg).expect("arg missing from env");
+
+                    let (labels_start, labels_end): (u32, u32) = instr.instr_labels.into();
+                    let labels = get_labels(instr_view, labels_start, labels_end);
+                    assert!(
+                        labels.len() == 2,
+                        "br instruction is malformed (has != 2 labels)"
+                    );
+
+                    let label1 = labels[0];
+                    let label2 = labels[1];
+                    // TODO: finish br logic
+                }
+                
+                else {
                     todo!()
                 }
             }
             InstrKind::Nop => {
-                continue;
+                current_instr_ptr += 1;
             }
         }
     }
