@@ -269,41 +269,6 @@ impl Opcode {
     /// - Panics if the `u32` value can't be converted
     pub fn u32_to_opcode(v: u32) -> Option<Self> {
         num_traits::FromPrimitive::from_u32(v)
-
-        // use Opcode::*;
-        // match possible_op {
-        //     // Arithmetic
-        //     Some(Add) => Add,
-        //     Some(Mul) => Mul,
-        //     Some(Sub) => Sub,
-        //     Some(Div) => Div,
-
-        //     // Comparison
-        //     Some(Eq) => Eq,
-        //     Some(Lt) => Lt,
-        //     Some(Gt) => Gt,
-        //     Some(Le) => Le,
-        //     Some(Ge) => Ge,
-
-        //     // Logic operations
-        //     Some(Not) => Not,
-        //     Some(And) => And,
-        //     Some(Or) => Or,
-
-        //     // Control flow
-        //     Some(Jmp) => Jmp,
-        //     Some(Br) => Br,
-        //     Some(Call) => Call,
-        //     Some(Ret) => Ret,
-
-        //     // Misc operations
-        //     Some(Id) => Id,
-        //     Some(Print) => Print,
-        //     Some(Nop) => Nop,
-        //     Some(Const) => Const,
-
-        //     None => panic!("Couldn't convert {} to an opcode", v),
-        // }
     }
 
     /// Returns the `(start idx, end idx)` of the opcode in the `OPCODES` buffer
