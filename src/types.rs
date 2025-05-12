@@ -569,7 +569,7 @@ impl From<FlatBrilValue> for Option<BrilValue> {
 impl From<SurrogateBool> for bool {
     fn from(surrogate_bool: SurrogateBool) -> Self {
         let b = surrogate_bool.0;
-        b != 0
+        b == 0
     }
 }
 

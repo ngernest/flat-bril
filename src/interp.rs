@@ -222,6 +222,7 @@ pub fn interp_instr_view<'a>(
                 // Extend the environment so that `dest |-> value`
                 env.insert(dest, value);
                 current_instr_ptr += 1;
+                continue;
             }
             InstrKind::ValueOp => {
                 if op.is_binop() {
@@ -232,6 +233,7 @@ pub fn interp_instr_view<'a>(
                     todo!("handle other value ops");
                 }
                 current_instr_ptr += 1;
+                continue;
             }
             InstrKind::EffectOp => {
                 if let Opcode::Print = op {
@@ -277,6 +279,7 @@ pub fn interp_instr_view<'a>(
                     if let Some(new_pc) = pc_of_label {
                         // Update `current_instr_ptr` to the PC of the label
                         current_instr_ptr = new_pc;
+                        continue;
                     } else {
                         panic!("cannot find PC corresponding to label")
                     }
@@ -317,8 +320,10 @@ pub fn interp_instr_view<'a>(
 
                         if br_condition {
                             current_instr_ptr = true_pc;
+                            continue;
                         } else {
                             current_instr_ptr = false_pc;
+                            continue;
                         }
                     } else {
                         panic!("argument to br instruction is ill-typed (doesn't have type bool)");
