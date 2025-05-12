@@ -113,6 +113,10 @@ pub fn unflatten_instrs(instr_store: &InstrStore) -> serde_json::Value {
             // Build a JSON object corresponding to the right instr kind
             let instr_kind = instr.get_instr_kind();
             let instr_json = match instr_kind {
+                InstrKind::Label => {
+                    // labels are already handled at the beginning of this function
+                    unreachable!();
+                }
                 InstrKind::Nop => {
                     serde_json::json!({
                         "op": op_str

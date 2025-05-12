@@ -187,9 +187,19 @@ pub fn interp_instr_view<'a>(
 
     while current_instr_ptr < instr_view.instrs.len() {
         let instr = &instr_view.instrs[current_instr_ptr];
-        let instr_type = instr.get_instr_kind();
-        let op: Opcode = Opcode::u32_to_opcode(instr.op);
-        match instr_type {
+        let instr_kind = instr.get_instr_kind();
+        if let InstrKind::Label = instr_kind {
+            // Reached a label annotation in the program, proceed to the next line
+            current_instr_ptr += 1;
+            continue;
+        }
+        let op: Opcode = Opcode::u32_to_opcode(instr.op)
+            .expect("unable to convert u32 to opcode");
+        match instr_kind {
+            InstrKind::Label => {
+                // handled above already
+                unreachable!()
+            }
             InstrKind::Const => {
                 let (dest_start, dest_end): (u32, u32) = instr.dest.into();
                 let dest = get_var(instr_view, dest_start, dest_end);
@@ -230,33 +240,42 @@ pub fn interp_instr_view<'a>(
                     println!("{value_of_arg}");
                     current_instr_ptr += 1;
                 } else if let Opcode::Jmp = op {
-                    // TODO: figure out why this doesn't work for `jmp.bril`
+                    // Fetch the start/end idx of the label in the `labels_store`
+                    let (label_start, label_end): (u32, u32) =
+                        instr.instr_labels.into();
 
-                    // Compute the start/end idx of the label in the `labels_store`
-                    let label_idxes = instr.instr_labels;
+                    // Grab the actual vector of label strings corresponding
+                    // to these indices
+                    let labels_vec =
+                        get_labels_vec(instr_view, label_start, label_end);
 
-                    println!("original label index = {:?}", label_idxes);
-                    let label_str = get_label_name(
-                        instr_view,
-                        label_idxes.first as u32,
-                        label_idxes.second as u32,
+                    assert!(
+                        labels_vec.len() == 1,
+                        "no. of args to jump instr != 1"
                     );
 
-                    println!("label_str = {}", label_str);
+                    let label_str = labels_vec[0];
+
+                    let label_start = label_start as usize;
+                    let label_end = label_end as usize;
 
                     let all_instrs = instr_view.instrs;
 
                     // Iterate over the list of instrs to find the index (PC)
-                    // of the instr corresponding to the label
+                    // of the instr corresponding to the label (we do this
+                    // by comparing the actual label strings)
                     let pc_of_label =
                         instr_view.instrs.iter().position(|instr| {
-                            let opcode = instr.op;
-                            let candidate_lbl_idx = instr.label;
-                            println!(
-                                "op = {:?}, candidate_lbl_idx = {:?}",
-                                opcode, candidate_lbl_idx
-                            );
-                            candidate_lbl_idx == label_idxes
+                            if instr.op == u32::MAX {
+                                let candidate_label_str = get_label_name(
+                                    instr_view,
+                                    instr.label.first as u32,
+                                    instr.label.second as u32,
+                                );
+                                candidate_label_str == label_str
+                            } else {
+                                false
+                            }
                         });
 
                     if let Some(new_pc) = pc_of_label {

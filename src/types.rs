@@ -1,6 +1,4 @@
 #![allow(dead_code, clippy::repr_packed_without_abi, non_camel_case_types)]
-
-use core::panic;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -66,6 +64,7 @@ pub struct FlatInstr {
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub enum InstrKind {
+    Label,
     Const,
     ValueOp,
     EffectOp,
@@ -147,22 +146,26 @@ impl Instr {
     /// Retrieves the kind of an instruction (`Nop, Const, EffectOp, ValueOp`)
     pub fn get_instr_kind(&self) -> InstrKind {
         use Opcode::*;
-        let op = Opcode::u32_to_opcode(self.op);
-        match op {
-            Nop => InstrKind::Nop,
-            Const => InstrKind::Const,
-            Print | Jmp | Br | Ret => InstrKind::EffectOp,
-            Call => {
-                // Function calls can be both value op and effect op
-                // depending on whether the `dest` field of the instr
-                // is present
-                if let Some((_, _)) = self.dest {
-                    InstrKind::ValueOp
-                } else {
-                    InstrKind::EffectOp
+        let possible_op = Opcode::u32_to_opcode(self.op);
+        if let Some(op) = possible_op {
+            match op {
+                Nop => InstrKind::Nop,
+                Const => InstrKind::Const,
+                Print | Jmp | Br | Ret => InstrKind::EffectOp,
+                Call => {
+                    // Function calls can be both value op and effect op
+                    // depending on whether the `dest` field of the instr
+                    // is present
+                    if let Some((_, _)) = self.dest {
+                        InstrKind::ValueOp
+                    } else {
+                        InstrKind::EffectOp
+                    }
                 }
+                _ => InstrKind::ValueOp,
             }
-            _ => InstrKind::ValueOp,
+        } else {
+            InstrKind::Label
         }
     }
 }
@@ -171,22 +174,26 @@ impl FlatInstr {
     /// Retrieves the kind of an instruction (`Nop, Const, EffectOp, ValueOp`)
     pub fn get_instr_kind(&self) -> InstrKind {
         use Opcode::*;
-        let op = Opcode::u32_to_opcode(self.op);
-        match op {
-            Nop => InstrKind::Nop,
-            Const => InstrKind::Const,
-            Print | Jmp | Br | Ret => InstrKind::EffectOp,
-            Call => {
-                // Function calls can be both value op and effect op
-                // depending on whether the `dest` field of the instr
-                // is present
-                if self.dest.first == -1 && self.dest.second == -1 {
-                    InstrKind::EffectOp
-                } else {
-                    InstrKind::ValueOp
+        let possible_op = Opcode::u32_to_opcode(self.op);
+        if let Some(op) = possible_op {
+            match op {
+                Nop => InstrKind::Nop,
+                Const => InstrKind::Const,
+                Print | Jmp | Br | Ret => InstrKind::EffectOp,
+                Call => {
+                    // Function calls can be both value op and effect op
+                    // depending on whether the `dest` field of the instr
+                    // is present
+                    if self.dest.first == -1 && self.dest.second == -1 {
+                        InstrKind::EffectOp
+                    } else {
+                        InstrKind::ValueOp
+                    }
                 }
+                _ => InstrKind::ValueOp,
             }
-            _ => InstrKind::ValueOp,
+        } else {
+            InstrKind::Label
         }
     }
 }
@@ -260,43 +267,43 @@ impl Opcode {
 
     /// Converts a `u32` value to the corresponding `Opcode`
     /// - Panics if the `u32` value can't be converted
-    pub fn u32_to_opcode(v: u32) -> Self {
-        let possible_op: Option<Opcode> =
-            num_traits::FromPrimitive::from_u32(v);
-        use Opcode::*;
-        match possible_op {
-            // Arithmetic
-            Some(Add) => Add,
-            Some(Mul) => Mul,
-            Some(Sub) => Sub,
-            Some(Div) => Div,
+    pub fn u32_to_opcode(v: u32) -> Option<Self> {
+        num_traits::FromPrimitive::from_u32(v)
 
-            // Comparison
-            Some(Eq) => Eq,
-            Some(Lt) => Lt,
-            Some(Gt) => Gt,
-            Some(Le) => Le,
-            Some(Ge) => Ge,
+        // use Opcode::*;
+        // match possible_op {
+        //     // Arithmetic
+        //     Some(Add) => Add,
+        //     Some(Mul) => Mul,
+        //     Some(Sub) => Sub,
+        //     Some(Div) => Div,
 
-            // Logic operations
-            Some(Not) => Not,
-            Some(And) => And,
-            Some(Or) => Or,
+        //     // Comparison
+        //     Some(Eq) => Eq,
+        //     Some(Lt) => Lt,
+        //     Some(Gt) => Gt,
+        //     Some(Le) => Le,
+        //     Some(Ge) => Ge,
 
-            // Control flow
-            Some(Jmp) => Jmp,
-            Some(Br) => Br,
-            Some(Call) => Call,
-            Some(Ret) => Ret,
+        //     // Logic operations
+        //     Some(Not) => Not,
+        //     Some(And) => And,
+        //     Some(Or) => Or,
 
-            // Misc operations
-            Some(Id) => Id,
-            Some(Print) => Print,
-            Some(Nop) => Nop,
-            Some(Const) => Const,
+        //     // Control flow
+        //     Some(Jmp) => Jmp,
+        //     Some(Br) => Br,
+        //     Some(Call) => Call,
+        //     Some(Ret) => Ret,
 
-            None => panic!("Couldn't convert {} to an opcode", v),
-        }
+        //     // Misc operations
+        //     Some(Id) => Id,
+        //     Some(Print) => Print,
+        //     Some(Nop) => Nop,
+        //     Some(Const) => Const,
+
+        //     None => panic!("Couldn't convert {} to an opcode", v),
+        // }
     }
 
     /// Returns the `(start idx, end idx)` of the opcode in the `OPCODES` buffer
