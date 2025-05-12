@@ -277,7 +277,7 @@ impl FlatInstr {
                 // Function calls can be both value op and effect op
                 // depending on whether the `dest` field of the instr
                 // is present
-                if self.dest.first == -1 && self.dest.second == -1{
+                if self.dest.first == -1 && self.dest.second == -1 {
                     InstrKind::EffectOp
                 } else {
                     InstrKind::ValueOp
@@ -411,6 +411,22 @@ pub enum Opcode {
 }
 
 impl Opcode {
+    /// Determines if an opcode is a binary operation
+    pub fn is_binop(self) -> bool {
+        match self {
+            Opcode::Not
+            | Opcode::Jmp
+            | Opcode::Br
+            | Opcode::Call
+            | Opcode::Ret
+            | Opcode::Id
+            | Opcode::Print
+            | Opcode::Nop
+            | Opcode::Const => false,
+            _ => true,
+        }
+    }
+
     /// Converts a `u32` value to the corresponding `Opcode`
     /// - Panics if the `u32` value can't be converted
     pub fn u32_to_opcode(v: u32) -> Self {

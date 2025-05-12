@@ -8,7 +8,7 @@ pub type Environment<'a> = HashMap<&'a str, BrilValue>;
 
 /// Extracts the variable name (string) that occupies `start_idx` to `end_idx`
 /// (inclusive) in `instr_view.var_store`
-pub fn get_varname_str<'a>(
+pub fn get_var<'a>(
     instr_view: &'a InstrView,
     start_idx: u32,
     end_idx: u32,
@@ -17,6 +17,83 @@ pub fn get_varname_str<'a>(
     let end_idx = end_idx as usize;
     str::from_utf8(&instr_view.var_store[start_idx..=end_idx])
         .expect("invalid utf-8")
+}
+
+pub fn get_args<'a>(
+    instr_view: &'a InstrView,
+    args_start: u32,
+    args_end: u32,
+) -> Vec<&'a str> {
+    let arg_start = args_start as usize;
+    let arg_end = args_end as usize;
+    let args_idxes_slice = &instr_view.arg_idxes_store[arg_start..=arg_end];
+    args_idxes_slice
+        .iter()
+        .map(|i32pair| {
+            let (start_idx, end_idx) = <(u32, u32)>::from(*i32pair);
+            get_var(instr_view, start_idx, end_idx)
+        })
+        .collect()
+}
+
+/// Interprets a binary operation (panics if `op` is not a binop)
+pub fn interp_binop<'a>(
+    instr_view: &'a InstrView,
+    op: Opcode,
+    instr: &FlatInstr,
+    env: &mut Environment<'a>,
+) {
+    use BrilValue::*;
+    use Opcode::*;
+
+    if !Opcode::is_binop(op) {
+        panic!("interp_binop called on a non-binary operation");
+    }
+
+    let (dest_start, dest_end): (u32, u32) = instr.dest.into();
+    let dest = get_var(instr_view, dest_start, dest_end);
+
+    let (args_start, args_end): (u32, u32) = instr.args.into();
+    let args = get_args(instr_view, args_start, args_end);
+    assert!(args.len() == 2, "no. of args to arithmetic op is not 2");
+
+    let x = env.get(args[0]).expect("left operand missing from env");
+    let y = env.get(args[1]).expect("right operand missing from env");
+
+    match (x, y) {
+        (IntVal(v1), IntVal(v2)) => {
+            let value = match op {
+                // Arithmetic
+                Add => IntVal(v1.wrapping_add(*v2)),
+                Sub => IntVal(v1.wrapping_sub(*v2)),
+                Mul => IntVal(v1.wrapping_mul(*v2)),
+                Div => IntVal(v1.wrapping_div(*v2)),
+                // Comparison
+                Eq => BoolVal((v1 == v2).into()),
+                Ge => BoolVal((v1 >= v2).into()),
+                Gt => BoolVal((v1 > v2).into()),
+                Le => BoolVal((v1 <= v2).into()),
+                Lt => BoolVal((v1 < v2).into()),
+                _ => unreachable!(),
+            };
+
+            env.insert(dest, value);
+        }
+        (BoolVal(b1), BoolVal(b2)) => {
+            let b1 = bool::from(*b1);
+            let b2 = bool::from(*b2);
+            // Logic
+            let value = match op {
+                And => BoolVal((b1 && b2).into()),
+                Or => BoolVal((b1 || b2).into()),
+                _ => unreachable!(),
+            };
+            env.insert(dest, value);
+        }
+        (_, _) => {
+            panic!("operands to binop are ill-typed")
+        }
+    }
 }
 
 /// Interprets all the instructions in `instr_view` using the supplied `env`
@@ -30,7 +107,7 @@ pub fn execute<'a>(
         match instr_type {
             InstrKind::Const => {
                 let (dest_start, dest_end): (u32, u32) = instr.dest.into();
-                let dest = get_varname_str(instr_view, dest_start, dest_end);
+                let dest = get_var(instr_view, dest_start, dest_end);
                 let value =
                     instr.value.try_into().expect("Encountered a null value");
 
@@ -38,43 +115,8 @@ pub fn execute<'a>(
                 env.insert(dest, value);
             }
             InstrKind::ValueOp => {
-                if let Opcode::Add = op {
-                    let (dest_start, dest_end): (u32, u32) = instr.dest.into();
-                    let dest =
-                        get_varname_str(instr_view, dest_start, dest_end);
-
-                    let (args_start, args_end): (u32, u32) = instr.args.into();
-                    let arg_start = args_start as usize;
-                    let arg_end = args_end as usize;
-                    let args_idxes_slice =
-                        &instr_view.arg_idxes_store[arg_start..=arg_end];
-                    let args: Vec<&str> = args_idxes_slice
-                        .iter()
-                        .map(|i32pair| {
-                            let (start_idx, end_idx) =
-                                <(u32, u32)>::from(*i32pair);
-                            get_varname_str(instr_view, start_idx, end_idx)
-                        })
-                        .collect();
-                    assert!(
-                        args.len() == 2,
-                        "no. of args to arithmetic op is not 2"
-                    );
-                    let x = env
-                        .get(args[0])
-                        .expect("left operand missing from env");
-                    let y = env
-                        .get(args[1])
-                        .expect("right operand missing from env");
-                    match (x, y) {
-                        (BrilValue::IntVal(vx), BrilValue::IntVal(vy)) => {
-                            let value = BrilValue::IntVal(vx.wrapping_add(*vy));
-                            env.insert(dest, value);
-                        }
-                        (_, _) => {
-                            panic!("operands to arithmetic instruction are ill-typed")
-                        }
-                    }
+                if Opcode::is_binop(op) {
+                    interp_binop(instr_view, op, instr, env);
                 } else {
                     todo!()
                 }
@@ -93,8 +135,7 @@ pub fn execute<'a>(
 
                     let (arg_start_idx, arg_end_idx): (u32, u32) =
                         args_idxes_slice[0].into();
-                    let arg =
-                        get_varname_str(instr_view, arg_start_idx, arg_end_idx);
+                    let arg = get_var(instr_view, arg_start_idx, arg_end_idx);
                     let value_of_arg =
                         env.get(arg).expect("arg missing from env");
                     println!("{value_of_arg}");
