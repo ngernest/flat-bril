@@ -115,7 +115,7 @@ impl BrilValue {
     pub fn get_type(&self) -> Type {
         match self {
             BrilValue::IntVal(_) => Type::Int,
-            BrilValue::BoolVal(_) => Type::Bool
+            BrilValue::BoolVal(_) => Type::Bool,
         }
     }
 }
@@ -373,6 +373,21 @@ pub struct InstrView<'a> {
     pub instrs: &'a [FlatInstr],
 }
 
+#[repr(packed)]
+#[derive(Debug, PartialEq, Clone, Immutable, IntoBytes)]
+pub struct InstrViewFamily<'a> {
+    pub instr_views: &'a [InstrView<'a>],
+}
+
+/// Top-level metadata in the mmap-ed file, appears before all the `Toc`/`InstrView`s
+/// The `offsets` fields contains a list of offsets (no. of bytes) for each
+/// of the functions in the Bril program.
+#[derive(IntoBytes, Debug, Clone, Copy, Immutable, KnownLayout)]
+#[repr(C)]
+pub struct Header<'a> {
+    pub offsets: &'a [u64],
+}
+
 /// Table of contents for the flat Bril file
 /// (each field stores the no. of elements in the corresponding slice
 /// in the `InstrView`)
@@ -417,35 +432,35 @@ impl InstrView<'_> {
         }
     }
 
-    // /// Computes the total no. of bytes occupied by the Toc +
-    // /// the contents of the `InstrView`
-    // /// NOTE: This function is broken! don't use it for now
-    // pub fn total_size_in_bytes(&self) -> u64 {
-    //     let toc_num_bytes = size_of::<Toc>();
-    //     let func_name_num_bytes = self.func_name.len() * size_of::<u8>();
-    //     let func_args_num_bytes =
-    //         self.func_args.len() * size_of::<FlatFuncArg>();
-    //     let func_ret_ty_num_bytes = size_of::<FlatType>();
-    //     let var_store_num_bytes = self.var_store.len() * size_of::<u8>();
-    //     let arg_idxes_store_num_bytes =
-    //         self.arg_idxes_store.len() * size_of::<I32Pair>();
-    //     let labels_idxes_store_num_bytes =
-    //         self.labels_idxes_store.len() * size_of::<I32Pair>();
-    //     let labels_store_num_bytes = self.labels_store.len() * size_of::<u8>();
-    //     let funcs_store_num_bytes = self.funcs_store.len() * size_of::<u8>();
-    //     let instrs_num_bytes = self.instrs.len() * size_of::<FlatInstr>();
+    /// Computes the total no. of bytes occupied by the Toc +
+    /// the contents of the `InstrView`
+    /// NOTE: This function is broken! don't use it for now
+    pub fn total_size_in_bytes(&self) -> u64 {
+        let toc_num_bytes = size_of::<Toc>();
+        let func_name_num_bytes = self.func_name.len() * size_of::<u8>();
+        let func_args_num_bytes =
+            self.func_args.len() * size_of::<FlatFuncArg>();
+        let func_ret_ty_num_bytes = size_of::<FlatType>();
+        let var_store_num_bytes = self.var_store.len() * size_of::<u8>();
+        let arg_idxes_store_num_bytes =
+            self.arg_idxes_store.len() * size_of::<I32Pair>();
+        let labels_idxes_store_num_bytes =
+            self.labels_idxes_store.len() * size_of::<I32Pair>();
+        let labels_store_num_bytes = self.labels_store.len() * size_of::<u8>();
+        let funcs_store_num_bytes = self.funcs_store.len() * size_of::<u8>();
+        let instrs_num_bytes = self.instrs.len() * size_of::<FlatInstr>();
 
-    //     (toc_num_bytes
-    //         + func_name_num_bytes
-    //         + func_args_num_bytes
-    //         + func_ret_ty_num_bytes
-    //         + var_store_num_bytes
-    //         + arg_idxes_store_num_bytes
-    //         + labels_idxes_store_num_bytes
-    //         + labels_store_num_bytes
-    //         + funcs_store_num_bytes
-    //         + instrs_num_bytes) as u64
-    // }
+        (toc_num_bytes
+            + func_name_num_bytes
+            + func_args_num_bytes
+            + func_ret_ty_num_bytes
+            + var_store_num_bytes
+            + arg_idxes_store_num_bytes
+            + labels_idxes_store_num_bytes
+            + labels_store_num_bytes
+            + funcs_store_num_bytes
+            + instrs_num_bytes) as u64
+    }
 }
 
 /* -------------------------------------------------------------------------- */

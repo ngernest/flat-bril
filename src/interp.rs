@@ -208,7 +208,7 @@ pub fn interp_binop<'a>(
 pub fn interp_instr_view<'a>(
     instr_view: &'a InstrView,
     env: &mut Environment<'a>,
-    funcs: &mut HashMap<&str, &InstrView>
+    funcs: &mut HashMap<&str, &InstrView>,
 ) -> Result<Option<BrilValue>, String> {
     let mut current_instr_ptr = 0; // Initialize program counter
 
@@ -343,14 +343,18 @@ pub fn interp_instr_view<'a>(
                         panic!("argument to br instruction is ill-typed (doesn't have type bool)");
                     }
                 } else if let Opcode::Call = op {
-                    let (funcs_start, funcs_end): (u32, u32) = instr.funcs.into();
-                    let func_name = get_func(instr_view, funcs_start, funcs_end);
+                    let (funcs_start, funcs_end): (u32, u32) =
+                        instr.funcs.into();
+                    let func_name =
+                        get_func(instr_view, funcs_start, funcs_end);
                     assert!(
                         func_name.len() == 1,
                         "call instruction must refer to 1 function name"
                     );
-                    
-                    let call_view = funcs.get(func_name).expect("func_name missing from funcs hashmap");
+
+                    let call_view = funcs
+                        .get(func_name)
+                        .expect("func_name missing from funcs hashmap");
 
                     let mut fresh_env = Environment::new();
                     if instr.args.first == -1 && instr.args.second == -1 {
@@ -358,25 +362,32 @@ pub fn interp_instr_view<'a>(
                         todo!("figure out how to jump to the PC of the callee")
                     }
                     let (args_start, args_end): (u32, u32) = instr.args.into();
-                    
-                    let args = get_args(instr_view, args_start, args_end);
-                    let args_values: Vec<&BrilValue> = 
-                      args.into_iter().map(|a| env.get(a).expect("arg missing from env")).collect();
 
-                    for (flat_arg, arg_value) in call_view.func_args.iter().zip(args_values) {
+                    let args = get_args(instr_view, args_start, args_end);
+                    let args_values: Vec<&BrilValue> = args
+                        .into_iter()
+                        .map(|a| env.get(a).expect("arg missing from env"))
+                        .collect();
+
+                    for (flat_arg, arg_value) in
+                        call_view.func_args.iter().zip(args_values)
+                    {
                         // Check typing
-                        let (start_idx, end_idx) : (u32, u32) = flat_arg.arg_name_idxes.into();
+                        let (start_idx, end_idx): (u32, u32) =
+                            flat_arg.arg_name_idxes.into();
                         let arg_name = get_var(instr_view, start_idx, end_idx);
                         let desired_arg_type: FlatType = flat_arg.arg_type;
-                        let actual_arg_type: FlatType = arg_value.get_type().into();
+                        let actual_arg_type: FlatType =
+                            arg_value.get_type().into();
                         match (desired_arg_type, actual_arg_type) {
-                            (FlatType::Int, FlatType::Int) | (FlatType::Bool, FlatType::Bool) => {
+                            (FlatType::Int, FlatType::Int)
+                            | (FlatType::Bool, FlatType::Bool) => {
                                 // Function arg is well-typed, extend the env with the arg_value
                                 fresh_env.insert(arg_name, *arg_value);
-                            },
+                            }
                             (FlatType::Null, _) | (_, FlatType::Null) => {
                                 panic!("encountered null type for function argument");
-                            },
+                            }
                             (_, _) => {
                                 panic!("Type of supplied argument doesn't match expected type of function argument");
                             }
@@ -384,15 +395,21 @@ pub fn interp_instr_view<'a>(
                     }
 
                     // Call function
-                    let ret_value = interp_instr_view(call_view, &mut fresh_env, funcs).expect("error encountered when interpreting instr_view");
+                    let ret_value =
+                        interp_instr_view(call_view, &mut fresh_env, funcs)
+                            .expect(
+                            "error encountered when interpreting instr_view",
+                        );
                     let (dest_start, dest_end): (u32, u32) = instr.dest.into();
-                    let dest_var = get_var(instr_view, dest_start, dest_end);                    
+                    let dest_var = get_var(instr_view, dest_start, dest_end);
                     env.insert(dest_var, ret_value.unwrap());
                 } else if let Opcode::Ret = op {
-                    let ret_value: BrilValue = instr.value.try_into().expect("Encountered a null value");
+                    let ret_value: BrilValue = instr
+                        .value
+                        .try_into()
+                        .expect("Encountered a null value");
                     return Ok(Some(ret_value));
-                }
-                else {
+                } else {
                     todo!()
                 }
             }
@@ -424,5 +441,6 @@ pub fn interp_program(program: &[InstrView], cmd_line_args: Vec<i64>) {
         env.insert(arg_name, BrilValue::IntVal(*arg_value));
     }
 
-    interp_instr_view(funcs["main"], &mut env, &mut funcs).expect("unexpected error when interpreting main");
+    interp_instr_view(funcs["main"], &mut env, &mut funcs)
+        .expect("unexpected error when interpreting main");
 }

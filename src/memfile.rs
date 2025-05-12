@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::io::Read;
 
 use memmap2::{Mmap, MmapMut};
+use num_traits::ops::bytes;
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, SizeError};
 use zerocopy::{TryFromBytes, ValidityError};
 
@@ -53,12 +54,30 @@ fn write_bytes<'a>(buffer: &'a mut [u8], data: &[u8]) -> Option<&'a mut [u8]> {
     Some(&mut buffer[len..])
 }
 
+pub fn convert_instr_view_to_bytes(instr_view: &InstrView) -> Vec<u8> {
+    let mut bytes_vec = vec![];
+
+    let toc = instr_view.get_sizes();
+    bytes_vec.extend_from_slice(toc.as_bytes());
+    bytes_vec.extend_from_slice(instr_view.func_name.as_bytes());
+    bytes_vec.extend_from_slice(instr_view.func_args.as_bytes());
+    bytes_vec.extend_from_slice(instr_view.var_store.as_bytes());
+    bytes_vec.extend_from_slice(instr_view.arg_idxes_store.as_bytes());
+    bytes_vec.extend_from_slice(instr_view.labels_idxes_store.as_bytes());
+    bytes_vec.extend_from_slice(instr_view.labels_store.as_bytes());
+    bytes_vec.extend_from_slice(instr_view.funcs_store.as_bytes());
+    bytes_vec.extend_from_slice(instr_view.instrs.as_bytes());
+
+    bytes_vec
+}
+
 /// Writes the `InstrView` to a buffer (note: `buffer` is modified in place)
-fn dump_to_buffer(instr_view: &InstrView, buffer: &mut [u8]) {
+fn dump_to_buffer<'a>(instr_view: &'a InstrView, buffer: &'a mut [u8]) {
     // Write the table of contents to the buffer
     let toc = instr_view.get_sizes();
 
-    let new_buffer = write_bump(buffer, &toc).unwrap();
+    let new_buffer =
+        write_bump(buffer, &toc).expect("error writing Toc to buffer");
 
     // Write the acutal contents of the `InstrView` to the buffer
     let new_buffer = write_bytes(new_buffer, instr_view.func_name).unwrap();
@@ -136,7 +155,8 @@ fn get_instr_view(data: &[u8]) -> InstrView {
 /*                                Actual logic                                */
 /* -------------------------------------------------------------------------- */
 
-pub fn main() {
+/// Writes a JSON Bril program to a mmap-ed flat Bril file
+pub fn json_to_fbril() {
     // Enable stack backtrace for debugging
     unsafe {
         std::env::set_var("RUST_BACKTRACE", "1");
@@ -154,9 +174,12 @@ pub fn main() {
     let functions = json["functions"]
         .as_array()
         .expect("Expected `functions` to be a JSON array");
+
+    let mut buffer: Vec<u8> = Vec::with_capacity(100000);
+    let mut offsets_vec: Vec<u64> = vec![];
+
     for func in functions {
         let instr_store: InstrStore = flatten::flatten_instrs(func);
-        let instr_store_clone = instr_store.clone();
 
         // Convert an `InstrStore` to an `InstrView`
         let flat_func_name = instr_store.func_name.as_slice();
@@ -204,29 +227,21 @@ pub fn main() {
             instrs: flat_instrs,
         };
 
-        let exec_result =
-            interp::interp_instr_view(&instr_view, &mut HashMap::new(), &mut HashMap::new());
-        if let Ok(_) = exec_result {
-            println!("succesful execution! exiting");
-            return;
-        }
-
-        // Compute the total no. of bytes required for the ToC + `InstrView`
-        // Note: this isn't working fo rnow
-        // let num_bytes_for_file = instr_view.total_size_in_bytes();
-
-        // TODO: generate some appropriate filename for the mmapped buffer
-        let mut mmap = mmap_new_file("fbril", 1000000000);
-        dump_to_buffer(&instr_view, &mut mmap);
-        println!("wrote to buffer!");
-
-        let new_instr_view = get_instr_view(&mmap);
-        println!("read from buffer!");
-
-        assert_eq!(instr_view, new_instr_view);
-
-        let new_instr_store: InstrStore = new_instr_view.into();
-
-        assert_eq!(instr_store_clone, new_instr_store);
+        let instr_view_bytes = convert_instr_view_to_bytes(&instr_view);
+        buffer.extend_from_slice(&instr_view_bytes);
+        offsets_vec.push(instr_view_bytes.len() as u64);
     }
+
+    let header = Header {
+        offsets: offsets_vec.as_slice(),
+    };
+    // TODO: figure out some appropriate filename + size for the mmapped file
+    let mut mmap = mmap_new_file("fbril", 100000000);
+
+    // Write the header to the file
+    let new_mmap = write_bump(&mut mmap, header.offsets)
+        .expect("error writing offsets to file");
+    // Then write the contents of the buffer to the file
+    write_bytes(new_mmap, &buffer);
+    println!("succesfully wrote to fbril file!");
 }
