@@ -380,12 +380,13 @@ pub struct InstrViewFamily<'a> {
 }
 
 /// Top-level metadata in the mmap-ed file, appears before all the `Toc`/`InstrView`s
-/// The `offsets` fields contains a list of offsets (no. of bytes) for each
+/// The `sizes` fields contains a list of sizes (no. of bytes) for each
 /// of the functions in the Bril program.
-#[derive(IntoBytes, Debug, Clone, Copy, Immutable, KnownLayout)]
+#[derive(FromBytes, IntoBytes, Debug, Clone, Copy, Immutable, KnownLayout)]
 #[repr(C)]
-pub struct Header<'a> {
-    pub offsets: &'a [u64],
+pub struct Header {
+    // TODO: change this in the future? right now we only allow at most 10 functions
+    pub sizes: [u64; 10],
 }
 
 /// Table of contents for the flat Bril file

@@ -1,4 +1,6 @@
 use clap::{Arg, ArgAction, Command};
+use types::Header;
+use zerocopy::FromBytes;
 mod flatten;
 mod interp;
 mod json_roundtrip;
@@ -40,7 +42,26 @@ fn main() {
             Ok(_cmd_line_args) => {
                 // TODO: figure out how to populate the env with the
                 // values of the args supplied to `main`
-                todo!()
+
+                // TODO: figure out the right filename to open
+                // ^^ (make this a cmd-line arg)
+                let new_mmap =
+                    memfile::mmap_new_file("fbril2", 100000000, false);
+                let (new_header, remaining_mmap) =
+                    Header::ref_from_prefix(&new_mmap).unwrap();
+
+                let mut offset = 0;
+                for size in new_header.sizes {
+                    if size != 0 {
+                        let size = size as usize;
+                        let _instr_view = memfile::get_instr_view(
+                            &remaining_mmap[offset..offset + size],
+                        );
+                        // TODO: actually interpret the instr_view
+                        offset += size;
+                    }
+                }
+                println!("done deserializing");
             }
             Err(_) => panic!("all arguments to main must be integer literals"),
         }

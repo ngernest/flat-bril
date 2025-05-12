@@ -1,10 +1,14 @@
 #![allow(dead_code, unused_imports)]
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::io::Read;
+use std::str;
 
 use memmap2::{Mmap, MmapMut};
 use num_traits::ops::bytes;
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, SizeError};
+use zerocopy::{
+    FromBytes, Immutable, IntoBytes, KnownLayout, SizeError, Unaligned,
+};
 use zerocopy::{TryFromBytes, ValidityError};
 
 use crate::flatten;
@@ -16,11 +20,15 @@ use crate::types::*;
 /* -------------------------------------------------------------------------- */
 
 /// Mmaps a new file with `size` bytes, returning a handle to the mmap-ed buffer
-pub fn mmap_new_file(filename: &str, size: u64) -> MmapMut {
+pub fn mmap_new_file(
+    filename: &str,
+    size: u64,
+    should_truncate: bool,
+) -> MmapMut {
     let file = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
-        .truncate(true)
+        .truncate(should_truncate)
         .create(true)
         .open(filename)
         .unwrap();
@@ -54,6 +62,7 @@ fn write_bytes<'a>(buffer: &'a mut [u8], data: &[u8]) -> Option<&'a mut [u8]> {
     Some(&mut buffer[len..])
 }
 
+/// Converts an `InstrView` to a vec of bytes
 pub fn convert_instr_view_to_bytes(instr_view: &InstrView) -> Vec<u8> {
     let mut bytes_vec = vec![];
 
@@ -61,6 +70,8 @@ pub fn convert_instr_view_to_bytes(instr_view: &InstrView) -> Vec<u8> {
     bytes_vec.extend_from_slice(toc.as_bytes());
     bytes_vec.extend_from_slice(instr_view.func_name.as_bytes());
     bytes_vec.extend_from_slice(instr_view.func_args.as_bytes());
+    let func_ret_ty = instr_view.func_ret_ty;
+    bytes_vec.extend_from_slice(func_ret_ty.as_bytes());
     bytes_vec.extend_from_slice(instr_view.var_store.as_bytes());
     bytes_vec.extend_from_slice(instr_view.arg_idxes_store.as_bytes());
     bytes_vec.extend_from_slice(instr_view.labels_idxes_store.as_bytes());
@@ -94,6 +105,20 @@ fn dump_to_buffer<'a>(instr_view: &'a InstrView, buffer: &'a mut [u8]) {
     write_bump(new_buffer, instr_view.instrs).unwrap();
 }
 
+/// Pads a vec till its length is a multiple of 4
+pub fn pad_vec(mut vec: Vec<u8>) -> Vec<u8> {
+    let remainder = vec.len() % 4;
+    if remainder == 0 {
+        return vec;
+    }
+
+    let padding_size = 4 - remainder;
+
+    vec.extend(std::iter::repeat(0).take(padding_size));
+
+    vec
+}
+
 /* -------------------------------------------------------------------------- */
 /*                             Reading from buffer                            */
 /* -------------------------------------------------------------------------- */
@@ -111,12 +136,13 @@ fn slice_prefix<T: TryFromBytes + Immutable>(
 
 /// Reads the table of contents from a prefix of the byte buffer
 fn read_toc(data: &[u8]) -> (&Toc, &[u8]) {
-    let (toc, remaining_buffer) = Toc::ref_from_prefix(data).unwrap();
+    let (toc, remaining_buffer) =
+        Toc::ref_from_prefix(data).expect("error deserializing ToC");
     (toc, remaining_buffer)
 }
 
 /// Get an `InstrView` backed by the data in a byte buffer
-fn get_instr_view(data: &[u8]) -> InstrView {
+pub fn get_instr_view(data: &[u8]) -> InstrView {
     let (toc, buffer) = read_toc(data);
 
     let (func_name, new_buffer) = slice_prefix::<u8>(buffer, toc.func_name);
@@ -128,6 +154,7 @@ fn get_instr_view(data: &[u8]) -> InstrView {
             .expect("error deserializing func_ret_ty");
 
     let (var_store, new_buffer) = slice_prefix::<u8>(new_buffer, toc.var_store);
+
     let (arg_idxes_store, new_buffer) =
         slice_prefix::<I32Pair>(new_buffer, toc.arg_idxes_store);
     let (labels_idxes_store, new_buffer) =
@@ -176,13 +203,17 @@ pub fn json_to_fbril() {
         .expect("Expected `functions` to be a JSON array");
 
     let mut buffer: Vec<u8> = Vec::with_capacity(100000);
-    let mut offsets_vec: Vec<u64> = vec![];
+
+    // we only allow 10 functions right now
+    let mut sizes_arr: [u64; 10] = [0; 10];
+    let mut sizes_idx = 0;
 
     for func in functions {
         let instr_store: InstrStore = flatten::flatten_instrs(func);
 
         // Convert an `InstrStore` to an `InstrView`
-        let flat_func_name = instr_store.func_name.as_slice();
+        let padded_func_name = pad_vec(instr_store.func_name);
+        let flat_func_name = padded_func_name.as_slice();
         let flat_func_arg_vec: Vec<FlatFuncArg> = instr_store
             .func_args
             .into_iter()
@@ -192,7 +223,8 @@ pub fn json_to_fbril() {
         let flat_func_args: &[FlatFuncArg] = flat_func_arg_vec.as_slice();
         let flat_func_ret_ty: FlatType = instr_store.func_ret_ty.into();
 
-        let flat_var_store: &[u8] = instr_store.var_store.as_slice();
+        let padded_var_store = pad_vec(instr_store.var_store);
+        let flat_var_store: &[u8] = &padded_var_store.as_slice();
         let flat_arg_idxes_vec: Vec<I32Pair> = instr_store
             .args_idxes_store
             .into_iter()
@@ -207,8 +239,11 @@ pub fn json_to_fbril() {
             .collect();
         let flat_label_idxes = flat_label_idxes_vec.as_slice();
 
-        let flat_labels_store = instr_store.labels_store.as_slice();
-        let flat_funcs_store = instr_store.funcs_store.as_slice();
+        let padded_labels_store = pad_vec(instr_store.labels_store);
+        let flat_labels_store = padded_labels_store.as_slice();
+
+        let padded_funcs_store = pad_vec(instr_store.funcs_store);
+        let flat_funcs_store = padded_funcs_store.as_slice();
         let flat_instrs_vec: Vec<FlatInstr> = instr_store
             .instrs
             .into_iter()
@@ -229,19 +264,23 @@ pub fn json_to_fbril() {
 
         let instr_view_bytes = convert_instr_view_to_bytes(&instr_view);
         buffer.extend_from_slice(&instr_view_bytes);
-        offsets_vec.push(instr_view_bytes.len() as u64);
+        sizes_arr[sizes_idx] = instr_view_bytes.len() as u64;
+        sizes_idx += 1;
     }
 
-    let header = Header {
-        offsets: offsets_vec.as_slice(),
-    };
-    // TODO: figure out some appropriate filename + size for the mmapped file
-    let mut mmap = mmap_new_file("fbril", 100000000);
+    let header = Header { sizes: sizes_arr };
 
-    // Write the header to the file
-    let new_mmap = write_bump(&mut mmap, header.offsets)
+    // TODO: figure out some appropriate filename + size for the mmapped file
+    let mut mmap = mmap_new_file("fbril", 100000000, true);
+
+    // Write the header (containing the offsets) to the file
+    let new_mmap = write_bump(&mut mmap, &header.sizes)
         .expect("error writing offsets to file");
     // Then write the contents of the buffer to the file
     write_bytes(new_mmap, &buffer);
+
+    // Note: we're keeping this around as a sanity check
+    let _temp_instr_view = get_instr_view(&buffer);
+
     println!("succesfully wrote to fbril file!");
 }
