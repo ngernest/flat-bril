@@ -339,3 +339,26 @@ pub fn interp_instr_view<'a>(
     }
     Ok(())
 }
+
+pub fn interp_program(
+    program: &[InstrView],
+    cmd_line_args: Vec<i64>
+) {
+    let mut funcs = HashMap::new();
+
+    // Find the main function
+    for view in program.iter() {
+        let func_name = str::from_utf8(view.func_name).expect("invalid utf-8");
+        funcs.insert(func_name, view);
+    }
+
+    // Prepopulate the env with command line arguments
+    let mut env = Environment::new();
+    for (ff_arg, arg_value) in funcs["main"].func_args.iter().zip(cmd_line_args.iter()) {
+        let (ff_args_start, ff_args_end): (u32, u32) = ff_arg.arg_name_idxes.into();
+        let arg_name = get_var(funcs["main"], ff_args_start, ff_args_end);
+        env.insert(arg_name, BrilValue::IntVal(*arg_value));
+    }
+
+    interp_instr_view(funcs["main"], &mut env).expect("unexpected error when interpreting main");
+}
