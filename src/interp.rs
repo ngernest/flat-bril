@@ -72,15 +72,28 @@ pub fn get_labels_vec<'a>(
         .collect()
 }
 
-// pub fn get_label_idxes<'a>(
-//     instr_view: &'a InstrView,
-//     labels_start: u32,
-//     labels_end: u32,
-// ) -> &'a [I32Pair] {
-//     let label_start = labels_start as usize;
-//     let label_end = labels_end as usize;
-//     &instr_view.labels_idxes_store[label_start..=label_end]
-// }
+/// Returns the PC (index in the list of instrs) corresponding to a label
+/// as an `Option`. (Returns `None` if no such PC exists.)
+pub fn get_pc_of_label(
+    instr_view: &InstrView,
+    label_str: &str,
+) -> Option<usize> {
+    // Iterate over the list of instrs to find the index (PC)
+    // of the instr corresponding to the label (we do this
+    // by comparing the actual label strings)
+    instr_view.instrs.iter().position(|instr| {
+        if instr.op == u32::MAX {
+            let candidate_label_str = get_label_name(
+                instr_view,
+                instr.label.first as u32,
+                instr.label.second as u32,
+            );
+            candidate_label_str == label_str
+        } else {
+            false
+        }
+    })
+}
 
 /// Interprets a unary value operation (`not` and `id`)
 /// (panics if `op` is not an unop)
@@ -211,17 +224,12 @@ pub fn interp_instr_view<'a>(
                 current_instr_ptr += 1;
             }
             InstrKind::ValueOp => {
-                if Opcode::is_binop(op) {
+                if op.is_binop() {
                     interp_binop(instr_view, op, instr, env);
+                } else if op.is_unop() {
+                    interp_unop(instr_view, op, instr, env);
                 } else {
-                    match op {
-                        Opcode::Not | Opcode::Id => {
-                            interp_unop(instr_view, op, instr, env);
-                        }
-                        _ => {
-                            todo!("handle other value operations")
-                        }
-                    }
+                    todo!("handle other value ops");
                 }
                 current_instr_ptr += 1;
             }
@@ -264,19 +272,7 @@ pub fn interp_instr_view<'a>(
                     // Iterate over the list of instrs to find the index (PC)
                     // of the instr corresponding to the label (we do this
                     // by comparing the actual label strings)
-                    let pc_of_label =
-                        instr_view.instrs.iter().position(|instr| {
-                            if instr.op == u32::MAX {
-                                let candidate_label_str = get_label_name(
-                                    instr_view,
-                                    instr.label.first as u32,
-                                    instr.label.second as u32,
-                                );
-                                candidate_label_str == label_str
-                            } else {
-                                false
-                            }
-                        });
+                    let pc_of_label = get_pc_of_label(instr_view, label_str);
 
                     if let Some(new_pc) = pc_of_label {
                         // Update `current_instr_ptr` to the PC of the label
@@ -295,18 +291,38 @@ pub fn interp_instr_view<'a>(
                     let value_of_arg =
                         env.get(arg).expect("arg missing from env");
 
-                    let (labels_start, labels_end): (u32, u32) =
-                        instr.instr_labels.into();
-                    let labels =
-                        get_labels_vec(instr_view, labels_start, labels_end);
-                    assert!(
-                        labels.len() == 2,
-                        "br instruction is malformed (has != 2 labels)"
-                    );
+                    if let BrilValue::BoolVal(surrogate_bool) = value_of_arg {
+                        let br_condition = bool::from(*surrogate_bool);
 
-                    let label1 = labels[0];
-                    let label2 = labels[1];
-                    // TODO: finish br logic
+                        let (labels_start, labels_end): (u32, u32) =
+                            instr.instr_labels.into();
+                        let labels = get_labels_vec(
+                            instr_view,
+                            labels_start,
+                            labels_end,
+                        );
+
+                        assert!(
+                            labels.len() == 2,
+                            "br instruction is malformed (has != 2 labels)"
+                        );
+
+                        let true_lbl = labels[0];
+                        let true_pc = get_pc_of_label(instr_view, true_lbl)
+                            .expect("label for true case doesn't have a PC");
+
+                        let false_lbl = labels[1];
+                        let false_pc = get_pc_of_label(instr_view, false_lbl)
+                            .expect("label for false case doesn't have a PC");
+
+                        if br_condition {
+                            current_instr_ptr = true_pc;
+                        } else {
+                            current_instr_ptr = false_pc;
+                        }
+                    } else {
+                        panic!("argument to br instruction is ill-typed (doesn't have type bool)");
+                    }
                 } else {
                     todo!()
                 }
