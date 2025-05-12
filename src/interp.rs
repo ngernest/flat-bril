@@ -36,7 +36,43 @@ pub fn get_args<'a>(
         .collect()
 }
 
-/// Interprets a binary operation (panics if `op` is not a binop)
+/// Interprets a unary value operation (`not` and `id`)
+/// (panics if `op` is not an unop)
+pub fn interp_unop<'a>(
+    instr_view: &'a InstrView,
+    op: Opcode,
+    instr: &FlatInstr,
+    env: &mut Environment<'a>,
+) {
+    if !Opcode::is_unop(op) {
+        panic!("interp_unop called on a non-unary value operation");
+    }
+
+    let (dest_start, dest_end): (u32, u32) = instr.dest.into();
+    let dest = get_var(instr_view, dest_start, dest_end);
+    let (args_start, args_end): (u32, u32) = instr.args.into();
+    let args = get_args(instr_view, args_start, args_end);
+    assert!(
+        args.len() == 1,
+        "unary instruction is malformed (no. of args != 1)"
+    );
+
+    let arg = args[0];
+    let value = env.get(arg).expect("arg missing from env");
+    let result = match (op, value) {
+        (Opcode::Not, BrilValue::BoolVal(b)) => {
+            let b = bool::from(*b);
+            BrilValue::BoolVal((!b).into())
+        }
+        (Opcode::Id, _) => *value,
+        _ => {
+            panic!("argument to unary instruction is ill-typed");
+        }
+    };
+    env.insert(dest, result);
+}
+
+/// Interprets a binary value operation (panics if `op` is not a binop)
 pub fn interp_binop<'a>(
     instr_view: &'a InstrView,
     op: Opcode,
@@ -47,7 +83,7 @@ pub fn interp_binop<'a>(
     use Opcode::*;
 
     if !Opcode::is_binop(op) {
-        panic!("interp_binop called on a non-binary operation");
+        panic!("interp_binop called on a non-binary value operation");
     }
 
     let (dest_start, dest_end): (u32, u32) = instr.dest.into();
@@ -55,7 +91,7 @@ pub fn interp_binop<'a>(
 
     let (args_start, args_end): (u32, u32) = instr.args.into();
     let args = get_args(instr_view, args_start, args_end);
-    assert!(args.len() == 2, "no. of args to arithmetic op is not 2");
+    assert!(args.len() == 2, "no. of args to arithmetic op != 2");
 
     let x = env.get(args[0]).expect("left operand missing from env");
     let y = env.get(args[1]).expect("right operand missing from env");
@@ -119,35 +155,8 @@ pub fn execute<'a>(
                     interp_binop(instr_view, op, instr, env);
                 } else {
                     match op {
-                        Opcode::Not => {
-                            let (dest_start, dest_end): (u32, u32) =
-                                instr.dest.into();
-                            let dest =
-                                get_var(instr_view, dest_start, dest_end);
-                            let (args_start, args_end): (u32, u32) =
-                                instr.args.into();
-                            let args =
-                                get_args(instr_view, args_start, args_end);
-                            assert!(
-                                args.len() == 1,
-                                "`not` instruction is malformed (has > 1 arg)"
-                            );
-
-                            let arg = args[0];
-                            let value =
-                                env.get(arg).expect("arg missing from env");
-                            match value {
-                                BrilValue::BoolVal(b) => {
-                                    let b = bool::from(*b);
-                                    env.insert(
-                                        dest,
-                                        BrilValue::BoolVal((!b).into()),
-                                    );
-                                }
-                                _ => {
-                                    panic!("argument to `not` instruction is ill-typed");
-                                }
-                            }
+                        Opcode::Not | Opcode::Id => {
+                            interp_unop(instr_view, op, instr, env);
                         }
                         _ => {
                             todo!("handle other value operations")
@@ -161,7 +170,7 @@ pub fn execute<'a>(
                     let args = get_args(instr_view, args_start, args_end);
                     assert!(
                         args.len() == 1,
-                        "print instruction is malformed (has > 1 arg)"
+                        "print instruction is malformed (has != 1 arg)"
                     );
 
                     let arg = args[0];
@@ -177,6 +186,5 @@ pub fn execute<'a>(
             }
         }
     }
-
     Ok(())
 }

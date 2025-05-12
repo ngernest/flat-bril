@@ -411,7 +411,7 @@ pub enum Opcode {
 }
 
 impl Opcode {
-    /// Determines if an opcode is a binary operation
+    /// Determines if an opcode is a binary (value) operation
     pub fn is_binop(self) -> bool {
         match self {
             Opcode::Not
@@ -424,6 +424,14 @@ impl Opcode {
             | Opcode::Nop
             | Opcode::Const => false,
             _ => true,
+        }
+    }
+
+    /// Determines if an opcode is a unary (value) operation (i.e. `not`, `id`)
+    pub fn is_unop(self) -> bool {
+        match self {
+            Opcode::Not | Opcode::Id => true,
+            _ => false,
         }
     }
 
