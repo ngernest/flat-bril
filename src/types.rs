@@ -206,11 +206,7 @@ pub struct SurrogateBool(u64);
 impl From<SurrogateBool> for bool {
     fn from(surrogate_bool: SurrogateBool) -> Self {
         let b = surrogate_bool.0;
-        if b == 0 {
-            false
-        } else {
-            true
-        }
+        b != 0
     }
 }
 
@@ -413,26 +409,23 @@ pub enum Opcode {
 impl Opcode {
     /// Determines if an opcode is a binary (value) operation
     pub fn is_binop(self) -> bool {
-        match self {
+        !matches!(
+            self,
             Opcode::Not
-            | Opcode::Jmp
-            | Opcode::Br
-            | Opcode::Call
-            | Opcode::Ret
-            | Opcode::Id
-            | Opcode::Print
-            | Opcode::Nop
-            | Opcode::Const => false,
-            _ => true,
-        }
+                | Opcode::Jmp
+                | Opcode::Br
+                | Opcode::Call
+                | Opcode::Ret
+                | Opcode::Id
+                | Opcode::Print
+                | Opcode::Nop
+                | Opcode::Const
+        )
     }
 
     /// Determines if an opcode is a unary (value) operation (i.e. `not`, `id`)
     pub fn is_unop(self) -> bool {
-        match self {
-            Opcode::Not | Opcode::Id => true,
-            _ => false,
-        }
+        matches!(self, Opcode::Not | Opcode::Id)
     }
 
     /// Converts a `u32` value to the corresponding `Opcode`
@@ -589,7 +582,7 @@ pub struct InstrView<'a> {
     pub instrs: &'a [FlatInstr],
 }
 
-impl<'a> From<InstrView<'_>> for InstrStore {
+impl From<InstrView<'_>> for InstrStore {
     fn from(instr_view: InstrView) -> Self {
         let func_name = instr_view.func_name.into();
         let func_args: Vec<FuncArg> = instr_view
@@ -649,7 +642,7 @@ pub struct Toc {
     pub instrs: usize,
 }
 
-impl<'a> InstrView<'a> {
+impl InstrView<'_> {
     /// Returns a `Toc` containing the sizes (no. of elements) of each field
     /// in the `InstrView` struct
     pub fn get_sizes(&self) -> Toc {

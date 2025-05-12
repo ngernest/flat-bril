@@ -7,7 +7,7 @@ use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, SizeError};
 use zerocopy::{TryFromBytes, ValidityError};
 
 use crate::flatten;
-use crate::interp::execute;
+use crate::interp;
 use crate::types::*;
 
 /* -------------------------------------------------------------------------- */
@@ -46,7 +46,7 @@ fn write_bump<'a, T: IntoBytes + Immutable + ?Sized>(
 /// (where `len = sizeof(data)`), and returns a mutable reference to
 /// `buffer[len..]` (i.e. the suffix of `buffer` after the first `len` bytes).
 /// - Note: `write_bytes` is a specialized version of `write_bump` where
-///  `data: &[u8]` (i.e. `data` is just a slice containing bytes)
+///   `data: &[u8]` (i.e. `data` is just a slice containing bytes)
 fn write_bytes<'a>(buffer: &'a mut [u8], data: &[u8]) -> Option<&'a mut [u8]> {
     let len = data.len();
     buffer[0..len].copy_from_slice(data);
@@ -204,7 +204,8 @@ pub fn main() {
             instrs: flat_instrs,
         };
 
-        let exec_result = execute(&instr_view, &mut HashMap::new());
+        let exec_result =
+            interp::interp_instr_view(&instr_view, &mut HashMap::new());
         if let Ok(()) = exec_result {
             println!("succesful execution! exiting");
             return;
@@ -215,7 +216,7 @@ pub fn main() {
         dump_to_buffer(&instr_view, &mut mmap);
         println!("wrote to buffer!");
 
-        let new_instr_view = get_instr_view(&mut mmap);
+        let new_instr_view = get_instr_view(&mmap);
         println!("read from buffer!");
 
         assert_eq!(instr_view, new_instr_view);

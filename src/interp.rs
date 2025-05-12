@@ -19,6 +19,8 @@ pub fn get_var<'a>(
         .expect("invalid utf-8")
 }
 
+/// Extracts a vec of args (variable name strings) that correspond to the
+/// `args_start` to `args_end` indices (inclusive) in `instr_view.arg_idxes_store`
 pub fn get_args<'a>(
     instr_view: &'a InstrView,
     args_start: u32,
@@ -133,7 +135,7 @@ pub fn interp_binop<'a>(
 }
 
 /// Interprets all the instructions in `instr_view` using the supplied `env`
-pub fn execute<'a>(
+pub fn interp_instr_view<'a>(
     instr_view: &'a InstrView,
     env: &mut Environment<'a>,
 ) -> Result<(), String> {
