@@ -118,24 +118,53 @@ pub fn execute<'a>(
                 if Opcode::is_binop(op) {
                     interp_binop(instr_view, op, instr, env);
                 } else {
-                    todo!()
+                    match op {
+                        Opcode::Not => {
+                            let (dest_start, dest_end): (u32, u32) =
+                                instr.dest.into();
+                            let dest =
+                                get_var(instr_view, dest_start, dest_end);
+                            let (args_start, args_end): (u32, u32) =
+                                instr.args.into();
+                            let args =
+                                get_args(instr_view, args_start, args_end);
+                            assert!(
+                                args.len() == 1,
+                                "`not` instruction is malformed (has > 1 arg)"
+                            );
+
+                            let arg = args[0];
+                            let value =
+                                env.get(arg).expect("arg missing from env");
+                            match value {
+                                BrilValue::BoolVal(b) => {
+                                    let b = bool::from(*b);
+                                    env.insert(
+                                        dest,
+                                        BrilValue::BoolVal((!b).into()),
+                                    );
+                                }
+                                _ => {
+                                    panic!("argument to `not` instruction is ill-typed");
+                                }
+                            }
+                        }
+                        _ => {
+                            todo!("handle other value operations")
+                        }
+                    }
                 }
             }
             InstrKind::EffectOp => {
                 if let Opcode::Print = op {
                     let (args_start, args_end): (u32, u32) = instr.args.into();
-                    let arg_start = args_start as usize;
-                    let arg_end = args_end as usize;
-                    let args_idxes_slice =
-                        &instr_view.arg_idxes_store[arg_start..=arg_end];
+                    let args = get_args(instr_view, args_start, args_end);
                     assert!(
-                        args_idxes_slice.len() == 1,
+                        args.len() == 1,
                         "print instruction is malformed (has > 1 arg)"
                     );
 
-                    let (arg_start_idx, arg_end_idx): (u32, u32) =
-                        args_idxes_slice[0].into();
-                    let arg = get_var(instr_view, arg_start_idx, arg_end_idx);
+                    let arg = args[0];
                     let value_of_arg =
                         env.get(arg).expect("arg missing from env");
                     println!("{value_of_arg}");
