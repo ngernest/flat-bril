@@ -54,7 +54,7 @@ pub fn get_label_name<'a>(
 
 /// Extracts a vec of labels that correspond to the
 /// `labels_start` to `labels_end` indices (inclusive) in `instr_view.labels_idxes_store`
-pub fn get_labels<'a>(
+pub fn get_labels_vec<'a>(
     instr_view: &'a InstrView,
     labels_start: u32,
     labels_end: u32,
@@ -70,6 +70,16 @@ pub fn get_labels<'a>(
             get_label_name(instr_view, start_idx, end_idx)
         })
         .collect()
+}
+
+pub fn get_label_idxes<'a>(
+    instr_view: &'a InstrView,
+    labels_start: u32,
+    labels_end: u32,
+) -> &'a [I32Pair] {
+    let label_start = labels_start as usize;
+    let label_end = labels_end as usize;
+    &instr_view.labels_idxes_store[label_start..=label_end]
 }
 
 /// Interprets a unary value operation (`not` and `id`)
@@ -220,16 +230,46 @@ pub fn interp_instr_view<'a>(
                     println!("{value_of_arg}");
                     current_instr_ptr += 1;
                 } else if let Opcode::Jmp = op {
+                    // TODO: figure out why this doesn't work for `jmp.bril`
+
+                    // Compute the start/end idx of the label in the `labels_store`
                     let (labels_start, labels_end): (u32, u32) =
                         instr.instr_labels.into();
-                    let labels =
-                        get_labels(instr_view, labels_start, labels_end);
+
+                    println!(
+                        "original label index = {:?}, {:?}",
+                        labels_start, labels_end
+                    );
+                    let label_idxes_slice =
+                        get_label_idxes(instr_view, labels_start, labels_end);
                     assert!(
-                        labels.len() == 1,
+                        label_idxes_slice.len() == 1,
                         "jump instruction is malformed (has != 1 label)"
                     );
-                    let target_label = labels[0];
-                    // TODO: finish jmp logic, find target_label in instrs list and set current_instr_ptr to this index
+
+                    println!("label_idxes_slice = {:?}", label_idxes_slice);
+
+                    let label_idxes = label_idxes_slice[0];
+
+                    println!("label_idxes = {:?}", label_idxes);
+
+                    let all_instrs = instr_view.instrs;
+                    println!("instrs = {:#?}", all_instrs);
+
+                    // Iterate over the list of instrs to find the index (PC)
+                    // of the instr corresponding to the label
+                    let pc_of_label =
+                        instr_view.instrs.iter().position(|instr| {
+                            let candidate_lbl_idx = instr.label;
+                            candidate_lbl_idx == label_idxes
+                        });
+
+                    if let Some(new_pc) = pc_of_label {
+                        // Update `current_instr_ptr` to the PC of the label
+                        current_instr_ptr = new_pc;
+                    } else {
+                        panic!("cannot find PC corresponding to label")
+                    }
                 } else if let Opcode::Br = op {
                     let (args_start, args_end): (u32, u32) = instr.args.into();
                     let args = get_args(instr_view, args_start, args_end);
@@ -244,7 +284,7 @@ pub fn interp_instr_view<'a>(
                     let (labels_start, labels_end): (u32, u32) =
                         instr.instr_labels.into();
                     let labels =
-                        get_labels(instr_view, labels_start, labels_end);
+                        get_labels_vec(instr_view, labels_start, labels_end);
                     assert!(
                         labels.len() == 2,
                         "br instruction is malformed (has != 2 labels)"
