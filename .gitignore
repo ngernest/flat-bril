@@ -4,4 +4,5 @@ fbril
 fbril2
 *.fbril
 benchmark_results/*
+*.png
 

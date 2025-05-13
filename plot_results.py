@@ -13,11 +13,12 @@ if __name__ == "__main__":
 
     csv_files = glob.glob("benchmark_results/*.csv")
 
-    for csv_file in csv_files:
+    for csv_file in csv_files[:55]:
         with open(csv_file, "r") as file:
-            next(file)
-            for line in file:
-                benchmark = os.path.basename(csv_file)
+            lines = file.readlines()[1:]
+            for line in lines:
+                basename = os.path.basename(csv_file)
+                benchmark = os.path.splitext(basename)[0]
                 run, result = line.strip().split(",")[:2]
                 if result != "timeout":
                     data.append((benchmark, run, round(float(result), 3)))
@@ -34,16 +35,16 @@ if __name__ == "__main__":
             for (bench_name, run, result) in data
             if bench_name == benchmark and run == "flat-bril"
         ]
-        ts_result = next(
+        ts_result = [
             result
             for (bench_name, run, result) in data
             if bench_name == benchmark and run == "brili-ts"
-        )
-        rs_result = next(
+        ]
+        rs_result = [
             result
             for (bench_name, run, result) in data
             if bench_name == benchmark and run == "brili-rs"
-        )
+        ]
 
         flat_results.append(flat_result)
         ts_results.append(ts_result)
@@ -57,12 +58,12 @@ if __name__ == "__main__":
     plt.scatter(x, rs_results, color="red", label="Brili (Rust)", zorder=2) 
 
     plt.title(
-        "Execution time of interpreter on benchmarks (lower is better)"
+        "Mean execution time of interpreter on benchmarks (lower is better)"
     )
     plt.xticks(x, benchmarks, rotation=45, ha="right")
 
     plt.xlabel("Benchmarks")
-    plt.ylabel("Execution time (s)")
+    plt.ylabel("Mean execution time over 10 runs (s)")
     plt.legend()
     plt.grid(zorder=1, linestyle="--", alpha=0.6)
 
