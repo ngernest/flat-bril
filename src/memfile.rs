@@ -183,7 +183,7 @@ pub fn get_instr_view(data: &[u8]) -> InstrView {
 /* -------------------------------------------------------------------------- */
 
 /// Writes a JSON Bril program to a mmap-ed flat Bril file
-pub fn json_to_fbril() {
+pub fn json_to_fbril(output_file: String) {
     // Enable stack backtrace for debugging
     unsafe {
         std::env::set_var("RUST_BACKTRACE", "1");
@@ -271,7 +271,7 @@ pub fn json_to_fbril() {
     let header = Header { sizes: sizes_arr };
 
     // TODO: figure out some appropriate filename + size for the mmapped file
-    let mut mmap = mmap_new_file("call.fbril", 100000000, true);
+    let mut mmap = mmap_new_file(&output_file, 100000000, true);
 
     // Write the header (containing the offsets) to the file
     let new_mmap = write_bump(&mut mmap, &header.sizes)

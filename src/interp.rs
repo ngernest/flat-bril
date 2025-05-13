@@ -1,4 +1,4 @@
-#![allow(unused_variables, dead_code)]
+#![allow(unused_variables)]
 use std::collections::HashMap;
 use std::str;
 
@@ -204,6 +204,99 @@ pub fn interp_binop<'a>(
     }
 }
 
+/// Interprets a function call
+pub fn interp_call<'a>(
+    instr_view: &'a InstrView,
+    env: &mut Environment<'a>,
+    funcs: &HashMap<&str, &InstrView>,
+    instr: &FlatInstr,
+    instr_kind: InstrKind,
+) {
+    let (funcs_start, funcs_end): (u32, u32) = instr.funcs.into();
+    let func_name = get_func(instr_view, funcs_start, funcs_end);
+
+    let call_view = funcs
+        .get(func_name)
+        .expect("func_name missing from funcs hashmap");
+
+    let mut fresh_env = Environment::new();
+    // No args supplied to function call, just interpret the callee
+    if instr.args.first == -1 && instr.args.second == -1 {
+        let possible_return_value =
+            interp_instr_view(call_view, &mut fresh_env, funcs)
+                .expect("error encountered when interpreting instr_view");
+        match instr_kind {
+            InstrKind::ValueOp => {
+                // Call function
+                let ret_value = possible_return_value
+                    .expect("missing return value for Call ValueOp");
+                let (dest_start, dest_end): (u32, u32) = instr.dest.into();
+                let dest_var = get_var(instr_view, dest_start, dest_end);
+                env.insert(dest_var, ret_value);
+                return;
+            }
+            InstrKind::EffectOp => {
+                // There's no dest if it's an effect-op, so we're done
+                return;
+            }
+            _ => unreachable!(),
+        }
+    } else {
+        // The function call has args supplied to it
+        let instr_args = instr.args;
+
+        let (args_start, args_end): (u32, u32) = instr.args.into();
+
+        let args = get_args(instr_view, args_start, args_end);
+        let args_values: Vec<&BrilValue> = args
+            .into_iter()
+            .map(|a| env.get(a).expect("arg missing from env"))
+            .collect();
+
+        for (flat_arg, arg_value) in call_view.func_args.iter().zip(args_values)
+        {
+            // Check typing
+            let (start_idx, end_idx): (u32, u32) =
+                flat_arg.arg_name_idxes.into();
+            let arg_name = get_var(instr_view, start_idx, end_idx);
+            let desired_arg_type: FlatType = flat_arg.arg_type;
+            let actual_arg_type: FlatType = arg_value.get_type().into();
+            match (desired_arg_type, actual_arg_type) {
+                (FlatType::Int, FlatType::Int)
+                | (FlatType::Bool, FlatType::Bool) => {
+                    // Function arg is well-typed, extend the env with the arg_value
+                    fresh_env.insert(arg_name, *arg_value);
+                }
+                (FlatType::Null, _) | (_, FlatType::Null) => {
+                    panic!("encountered null type for function argument");
+                }
+                (_, _) => {
+                    panic!("Type of supplied argument doesn't match expected type of function argument");
+                }
+            }
+        }
+
+        // Call function
+        match instr_kind {
+            InstrKind::ValueOp => {
+                // Call function
+                let ret_value =
+                    interp_instr_view(call_view, &mut fresh_env, funcs)
+                        .expect("error interpreting function call");
+                let (dest_start, dest_end): (u32, u32) = instr.dest.into();
+                let dest_var = get_var(instr_view, dest_start, dest_end);
+                env.insert(dest_var, ret_value.expect("missing return value"));
+                return;
+            }
+            InstrKind::EffectOp => {
+                // There's no dest if it's an effect-op, so we're done
+                return;
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
 /// Interprets all the instructions in `instr_view` using the supplied `env`
 pub fn interp_instr_view<'a>(
     instr_view: &'a InstrView,
@@ -222,10 +315,6 @@ pub fn interp_instr_view<'a>(
         }
         let op: Opcode = Opcode::u32_to_opcode(instr.op)
             .expect("unable to convert u32 to opcode");
-        println!(
-            "currently processing {:?}, instr_kind = {:?}",
-            op, instr_kind
-        );
         match instr_kind {
             InstrKind::Label => {
                 // handled above already
@@ -336,104 +425,43 @@ pub fn interp_instr_view<'a>(
                         panic!("argument to br instruction is ill-typed (doesn't have type bool)");
                     }
                 } else if let Opcode::Call = op {
-                    let (funcs_start, funcs_end): (u32, u32) =
-                        instr.funcs.into();
-                    let func_name =
-                        get_func(instr_view, funcs_start, funcs_end);
-
-                    let call_view = funcs
-                        .get(func_name)
-                        .expect("func_name missing from funcs hashmap");
-
-                    let mut fresh_env = Environment::new();
-                    // No args supplied to function call, just interpret the callee
-                    if instr.args.first == -1 && instr.args.second == -1 {
-                        interp_instr_view(call_view, &mut fresh_env, funcs)
-                            .expect(
-                            "error encountered when interpreting instr_view",
-                        );
-                        current_instr_ptr += 1;
-                    } else {
-                        let instr_args = instr.args;
-                        println!("instr.args = {:#?}", instr_args);
-
-                        let (args_start, args_end): (u32, u32) =
-                            instr.args.into();
-
-                        let args = get_args(instr_view, args_start, args_end);
-                        let args_values: Vec<&BrilValue> = args
-                            .into_iter()
-                            .map(|a| env.get(a).expect("arg missing from env"))
-                            .collect();
-
-                        for (flat_arg, arg_value) in
-                            call_view.func_args.iter().zip(args_values)
-                        {
-                            // Check typing
-                            let (start_idx, end_idx): (u32, u32) =
-                                flat_arg.arg_name_idxes.into();
-                            let arg_name =
-                                get_var(instr_view, start_idx, end_idx);
-                            let desired_arg_type: FlatType = flat_arg.arg_type;
-                            let actual_arg_type: FlatType =
-                                arg_value.get_type().into();
-                            match (desired_arg_type, actual_arg_type) {
-                                (FlatType::Int, FlatType::Int)
-                                | (FlatType::Bool, FlatType::Bool) => {
-                                    // Function arg is well-typed, extend the env with the arg_value
-                                    fresh_env.insert(arg_name, *arg_value);
-                                }
-                                (FlatType::Null, _) | (_, FlatType::Null) => {
-                                    panic!("encountered null type for function argument");
-                                }
-                                (_, _) => {
-                                    panic!("Type of supplied argument doesn't match expected type of function argument");
-                                }
-                            }
-                        }
-
-                        // Call function
-                        let ret_value = interp_instr_view(
-                            call_view,
-                            &mut fresh_env,
-                            funcs,
-                        )
-                        .expect(
-                            "error encountered when interpreting instr_view",
-                        );
-                        let (dest_start, dest_end): (u32, u32) =
-                            instr.dest.into();
-                        let dest_var =
-                            get_var(instr_view, dest_start, dest_end);
-                        env.insert(dest_var, ret_value.unwrap());
-                        current_instr_ptr += 1;
-                    }
+                    interp_call(instr_view, env, funcs, instr, instr_kind);
+                    current_instr_ptr += 1;
                 } else if let Opcode::Ret = op {
-                    let flat_ret_value = instr.value;
-                    match flat_ret_value {
-                        FlatBrilValue::Null(_) => {
-                            // Ret instruction with no value
-                            return Ok(None);
-                        }
-                        _ => {
-                            let ret_value: BrilValue = flat_ret_value
-                                .try_into()
-                                .expect("Encountered a null value");
-                            return Ok(Some(ret_value));
-                        }
+                    let return_args = instr.args;
+                    let args = get_args(
+                        instr_view,
+                        return_args.first as u32,
+                        return_args.second as u32,
+                    );
+                    assert!(
+                        args.len() <= 1,
+                        "too many args supplied to Ret instruction"
+                    );
+                    if args.len() == 0 {
+                        // Ret instruction with no value
+                        return Ok(None);
+                    } else {
+                        let arg = args[0];
+                        let ret_value =
+                            env.get(arg).expect("missing arg in env");
+                        return Ok(Some(*ret_value));
                     }
                 } else {
-                    todo!()
+                    // There are no more EffectOps to handle
+                    unreachable!()
                 }
             }
             InstrKind::ValueOp => {
-                println!("encountered ValueOp = {:?}", op);
                 if op.is_binop() {
                     interp_binop(instr_view, op, instr, env);
                 } else if op.is_unop() {
                     interp_unop(instr_view, op, instr, env);
+                } else if let Opcode::Call = op {
+                    interp_call(instr_view, env, funcs, instr, instr_kind);
                 } else {
-                    todo!("handle other value ops");
+                    // there are no more ValueOps to handle
+                    unreachable!()
                 }
                 current_instr_ptr += 1;
                 continue;
