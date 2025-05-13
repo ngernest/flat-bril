@@ -347,18 +347,23 @@ pub fn interp_instr_view<'a>(
                 if let Opcode::Print = op {
                     let (args_start, args_end): (u32, u32) = instr.args.into();
                     let args = get_args(instr_view, args_start, args_end);
-                    assert!(
-                        args.len() == 1,
-                        "print instruction is malformed (has != 1 arg)"
-                    );
 
-                    let arg = args[0];
-                    let value_of_arg =
-                        env.get(arg).expect("arg missing from env");
+                    let arg_values: Vec<&BrilValue> = args
+                        .iter()
+                        .map(|arg| env.get(arg).expect("arg missing from env"))
+                        .collect();
 
-                    // Actually print out the value of the argument
+                    let value_strs: Vec<String> = arg_values
+                        .iter()
+                        .map(|value| format!("{value}"))
+                        .collect();
+
+                    let string_to_print = value_strs.join(" ");
+
+                    // Actually print out the value of the arguments
                     // NOTE TO SELF: DO NOT REMOVE THIS PRINTLN
-                    println!("{value_of_arg}");
+                    println!("{string_to_print}");
+
                     current_instr_ptr += 1;
                 } else if let Opcode::Jmp = op {
                     // Fetch the start/end idx of the label in the `labels_store`
