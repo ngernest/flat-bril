@@ -11,7 +11,10 @@ mod memfile;
 mod types;
 mod unflatten;
 
-// To interpret a file: `cargo run -- --filename call.fbril --interp`
+// To create an fbril file:
+// `bril2json < test/call.bril | cargo run -- --filename test/call.fbril --fbril`
+
+// To interpret a file: `cargo run -- --filename test/call.fbril --interp`
 
 fn main() {
     // Enable stack backtrace for debugging

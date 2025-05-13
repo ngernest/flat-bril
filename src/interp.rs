@@ -429,6 +429,10 @@ pub fn interp_instr_view<'a>(
                     current_instr_ptr += 1;
                 } else if let Opcode::Ret = op {
                     let return_args = instr.args;
+                    if return_args.first == -1 && return_args.second == -1 {
+                        // No args supplied to Ret
+                        return Ok(None);
+                    }
                     let args = get_args(
                         instr_view,
                         return_args.first as u32,
@@ -438,15 +442,10 @@ pub fn interp_instr_view<'a>(
                         args.len() <= 1,
                         "too many args supplied to Ret instruction"
                     );
-                    if args.len() == 0 {
-                        // Ret instruction with no value
-                        return Ok(None);
-                    } else {
-                        let arg = args[0];
-                        let ret_value =
-                            env.get(arg).expect("missing arg in env");
-                        return Ok(Some(*ret_value));
-                    }
+
+                    let arg = args[0];
+                    let ret_value = env.get(arg).expect("missing arg in env");
+                    return Ok(Some(*ret_value));
                 } else {
                     // There are no more EffectOps to handle
                     unreachable!()
