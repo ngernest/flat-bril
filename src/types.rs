@@ -359,6 +359,7 @@ pub struct InstrStore {
 
 /// `InstrView` is the same as `InstrStore`:
 /// all the slices in `InstrView` are references to the `Vec`s in `InstrStore`
+/// All [u8]s are padded to 4 bytes
 #[repr(packed)]
 #[derive(Debug, PartialEq, Clone, Immutable, IntoBytes)]
 pub struct InstrView<'a> {
