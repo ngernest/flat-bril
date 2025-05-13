@@ -271,7 +271,7 @@ pub fn json_to_fbril() {
     let header = Header { sizes: sizes_arr };
 
     // TODO: figure out some appropriate filename + size for the mmapped file
-    let mut mmap = mmap_new_file("fbril", 100000000, true);
+    let mut mmap = mmap_new_file("call.fbril", 100000000, true);
 
     // Write the header (containing the offsets) to the file
     let new_mmap = write_bump(&mut mmap, &header.sizes)

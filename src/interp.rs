@@ -222,6 +222,10 @@ pub fn interp_instr_view<'a>(
         }
         let op: Opcode = Opcode::u32_to_opcode(instr.op)
             .expect("unable to convert u32 to opcode");
+        println!(
+            "currently processing {:?}, instr_kind = {:?}",
+            op, instr_kind
+        );
         match instr_kind {
             InstrKind::Label => {
                 // handled above already
@@ -235,17 +239,6 @@ pub fn interp_instr_view<'a>(
 
                 // Extend the environment so that `dest |-> value`
                 env.insert(dest, value);
-                current_instr_ptr += 1;
-                continue;
-            }
-            InstrKind::ValueOp => {
-                if op.is_binop() {
-                    interp_binop(instr_view, op, instr, env);
-                } else if op.is_unop() {
-                    interp_unop(instr_view, op, instr, env);
-                } else {
-                    todo!("handle other value ops");
-                }
                 current_instr_ptr += 1;
                 continue;
             }
@@ -347,9 +340,16 @@ pub fn interp_instr_view<'a>(
                         instr.funcs.into();
                     let func_name =
                         get_func(instr_view, funcs_start, funcs_end);
-                    assert!(
-                        func_name.len() == 1,
-                        "call instruction must refer to 1 function name"
+                    println!("func_name = {}", func_name);
+
+                    println!("func.keys:");
+                    for func_key in funcs.keys() {
+                        println!("\t{}", func_key);
+                    }
+
+                    assert_eq!(
+                        func_name, "print4",
+                        "func_name not equal to print4"
                     );
 
                     let call_view = funcs
@@ -413,6 +413,18 @@ pub fn interp_instr_view<'a>(
                     todo!()
                 }
             }
+            InstrKind::ValueOp => {
+                println!("encountered ValueOp = {:?}", op);
+                if op.is_binop() {
+                    interp_binop(instr_view, op, instr, env);
+                } else if op.is_unop() {
+                    interp_unop(instr_view, op, instr, env);
+                } else {
+                    todo!("handle other value ops");
+                }
+                current_instr_ptr += 1;
+                continue;
+            }
             InstrKind::Nop => {
                 current_instr_ptr += 1;
             }
@@ -427,7 +439,12 @@ pub fn interp_program(program: &[InstrView], cmd_line_args: Vec<i64>) {
     // Find the main function
     for view in program.iter() {
         let func_name = str::from_utf8(view.func_name).expect("invalid utf-8");
+        println!("func_name = {}", func_name);
         funcs.insert(func_name, view);
+    }
+
+    for func_key in funcs.keys() {
+        println!("key in func = {}", func_key);
     }
 
     // Prepopulate the env with command line arguments

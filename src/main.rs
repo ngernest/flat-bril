@@ -41,13 +41,10 @@ fn main() {
             possible_arg_values.map(|s| s.parse::<i64>()).collect();
         match int_arg_values {
             Ok(cmd_line_args) => {
-                // TODO: figure out how to populate the env with the
-                // values of the args supplied to `main`
-
                 // TODO: figure out the right filename to open
                 // ^^ (make this a cmd-line arg)
                 let new_mmap =
-                    memfile::mmap_new_file("fbril2", 100000000, false);
+                    memfile::mmap_new_file("call.fbril", 100000000, false);
                 let (new_header, remaining_mmap) =
                     Header::ref_from_prefix(&new_mmap).unwrap();
 
