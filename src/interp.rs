@@ -344,7 +344,7 @@ pub fn interp_instr_view<'a>(
 
                     println!("func.keys:");
                     for func_key in funcs.keys() {
-                        println!("\t{}", func_key);
+                        println!("\t{:?}", func_key);
                     }
 
                     assert_eq!(
@@ -439,7 +439,9 @@ pub fn interp_program(program: &[InstrView], cmd_line_args: Vec<i64>) {
     // Find the main function
     for view in program.iter() {
         let func_name = str::from_utf8(view.func_name).expect("invalid utf-8");
-        println!("func_name = {}", func_name);
+        // Remove excess null terminators at end of string
+        let func_name = func_name.trim_end_matches(char::from(0));
+        println!("func_name = {:?}", func_name);
         funcs.insert(func_name, view);
     }
 
