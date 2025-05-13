@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     csv_files = glob.glob("benchmark_results/*.csv")
 
-    for csv_file in csv_files[:55]:
+    for csv_file in csv_files:
         with open(csv_file, "r") as file:
             lines = file.readlines()[1:]
             for line in lines:
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         rs_results.append(rs_result)
 
     x = range(len(benchmarks))
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(16, 6))
 
     plt.scatter(x, flat_results, color="green", label="Flat-Bril", zorder=2)
     plt.scatter(x, ts_results, color="blue", label="Brili (TypeScript)", zorder=2)
