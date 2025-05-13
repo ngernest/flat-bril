@@ -1,4 +1,5 @@
 #![allow(unused_variables)]
+use core::panic;
 use std::collections::HashMap;
 use std::str;
 
@@ -494,7 +495,7 @@ pub fn interp_instr_view<'a>(
 }
 
 /// Interprets an entire program using the `cmd_line_args` (args to `main`)
-pub fn interp_program(program: &[InstrView], cmd_line_args: Vec<i64>) {
+pub fn interp_program(program: &[InstrView], cmd_line_args: Vec<&str>) {
     let mut funcs = HashMap::new();
 
     // Find the main function
@@ -513,7 +514,25 @@ pub fn interp_program(program: &[InstrView], cmd_line_args: Vec<i64>) {
         let (ff_args_start, ff_args_end): (u32, u32) =
             ff_arg.arg_name_idxes.into();
         let arg_name = get_var(funcs["main"], ff_args_start, ff_args_end);
-        env.insert(arg_name, BrilValue::IntVal(*arg_value));
+        match ff_arg.arg_type {
+            FlatType::Bool => {
+                if *arg_value == "true" {
+                    env.insert(arg_name, BrilValue::BoolVal(true.into()));
+                } else if *arg_value == "false" {
+                    env.insert(arg_name, BrilValue::BoolVal(false.into()));
+                }
+            }
+            FlatType::Int => {
+                // Actually try to parse the string as an int
+                let i = arg_value
+                    .parse::<i64>()
+                    .expect("Unable to parse string as i64");
+                env.insert(arg_name, BrilValue::IntVal(i));
+            }
+            FlatType::Null => {
+                panic!("function argument has unexpected null type");
+            }
+        }
     }
 
     interp_instr_view(funcs["main"], &mut env, &mut funcs)
