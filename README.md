@@ -1,6 +1,6 @@
 # A Flattened Representation for Bril
 
-Repo structure:
+**Repo structure:**
 - [`main.rs`](./src/main.rs): Reads in a JSON Bril file from `stdin`
 - [`flatten.rs`](./src/flatten.rs): Converts a JSON Bril file to a flattened instruction format 
 - [`unflatten.rs`](./src/unflatten.rs): Converts a flattened Bril instruction back to JSON

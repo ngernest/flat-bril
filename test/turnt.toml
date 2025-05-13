@@ -2,6 +2,8 @@
 command = "bril2json < {filename} | cargo run -- --json"
 output."json_roundtrip" = "-"
 
+# The Bash commands are for converting a filename like `call.bril` into `call.fbril`
+# Note: this environment requires first compiilng using `cargo build --release`
 [envs.interp]
 command = "base=`echo {filename} | cut -d . -f 1`; g=${{base}}.fbril; ../target/release/flat-bril --filename $g --interp {args}"
 output.out = "-"

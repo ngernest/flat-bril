@@ -1,3 +1,5 @@
+# Note: before running this script, make sure to do `cargo build --release` first!
+
 import os
 import subprocess
 import glob

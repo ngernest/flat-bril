@@ -1,9 +1,6 @@
-# Plots the overhead (% increase in instruction count) after
-# doing the SSA round-trip conversion
+# Creates the scatter plot in `bench_results.png`
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
-
 import glob
 import os
 
