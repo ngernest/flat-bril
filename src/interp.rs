@@ -249,6 +249,7 @@ pub fn interp_call<'a>(
 
         // Args supplied to call instruction
         let args = get_args(instr_view, args_start, args_end);
+
         let args_values: Vec<&BrilValue> = args
             .into_iter()
             .map(|a| env.get(a).expect("arg missing from env"))
@@ -293,6 +294,11 @@ pub fn interp_call<'a>(
                 return;
             }
             InstrKind::EffectOp => {
+                // There is no return value, so we can just ignore the result
+                // of `inerp_instr_view`
+                interp_instr_view(call_view, &mut fresh_env, funcs)
+                    .expect("error interpreting function call");
+
                 // There's no dest if it's an effect-op, so we're done
                 return;
             }
