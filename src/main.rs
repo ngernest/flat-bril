@@ -1,4 +1,5 @@
 use clap::{Arg, ArgAction, Command};
+use interp::interp_program;
 use types::Header;
 use zerocopy::FromBytes;
 mod flatten;
@@ -39,7 +40,7 @@ fn main() {
         let int_arg_values: Result<Vec<i64>, _> =
             possible_arg_values.map(|s| s.parse::<i64>()).collect();
         match int_arg_values {
-            Ok(_cmd_line_args) => {
+            Ok(cmd_line_args) => {
                 // TODO: figure out how to populate the env with the
                 // values of the args supplied to `main`
 
@@ -51,17 +52,21 @@ fn main() {
                     Header::ref_from_prefix(&new_mmap).unwrap();
 
                 let mut offset = 0;
+
+                let mut program_vec = vec![];
                 for size in new_header.sizes {
                     if size != 0 {
                         let size = size as usize;
-                        let _instr_view = memfile::get_instr_view(
+                        let instr_view = memfile::get_instr_view(
                             &remaining_mmap[offset..offset + size],
                         );
-                        // TODO: actually interpret the instr_view
+                        program_vec.push(instr_view);
                         offset += size;
                     }
                 }
-                println!("done deserializing");
+                let program = program_vec.as_slice();
+                println!("done deserializing, interpreting program:");
+                interp_program(program, cmd_line_args);
             }
             Err(_) => panic!("all arguments to main must be integer literals"),
         }
