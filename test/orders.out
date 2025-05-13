@@ -1,67 +1,96 @@
-@abs
-	op: const		dest: zero		type: int		value: 0	
-	op: lt   		dest: is_neg		type: bool		args: ["a", "zero"]	
-	op: br   		args: ["is_neg"]		labels: ["mul_neg_one", "abs_res"]
-.mul_neg_one
-	op: const		dest: neg_one		type: int		value: -1	
-	op: mul  		dest: a 		type: int		args: ["a", "neg_one"]	
-.abs_res
-	op: ret  		args: ["a"]	
-@mod
-	op: div  		dest: q 		type: int		args: ["a", "b"]	
-	op: mul  		dest: aq		type: int		args: ["b", "q"]	
-	op: sub  		dest: mod		type: int		args: ["a", "aq"]	
-	op: ret  		args: ["mod"]	
-@gcd
-.while.cond
-	op: call 		dest: mod		type: int		args: ["a", "b"]		funcs: ["mod"]
-	op: const		dest: zero		type: int		value: 0	
-	op: eq   		dest: is_term		type: bool		args: ["mod", "zero"]	
-	op: br   		args: ["is_term"]		labels: ["while.finish", "while.body"]
-.while.body
-	op: id   		dest: a 		type: int		args: ["b"]	
-	op: id   		dest: b 		type: int		args: ["mod"]	
-	op: jmp  		labels: ["while.cond"]
-.while.finish
-	op: ret  		args: ["b"]	
-@lcm
-	op: const		dest: zero		type: int		value: 0	
-	op: eq   		dest: a_is_zero		type: bool		args: ["a", "zero"]	
-	op: br   		args: ["a_is_zero"]		labels: ["check_b", "is_good"]
-.check_b
-	op: eq   		dest: b_is_zero		type: bool		args: ["b", "zero"]	
-	op: br   		args: ["b_is_zero"]		labels: ["special_case", "is_good"]
-.special_case
-	op: ret  		args: ["zero"]	
-.is_good
-	op: mul  		dest: ab		type: int		args: ["a", "b"]	
-	op: call 		dest: ab		type: int		args: ["ab"]		funcs: ["abs"]
-	op: call 		dest: gcdab		type: int		args: ["a", "b"]		funcs: ["gcd"]
-	op: div  		dest: lcm		type: int		args: ["ab", "gcdab"]	
-	op: ret  		args: ["lcm"]	
-@orders
-.for.cond
-	op: eq   		dest: is_term		type: bool		args: ["u", "n"]	
-	op: br   		args: ["is_term"]		labels: ["for.finish", "for.body"]
-.for.body
-	op: br   		args: ["use_lcm"]		labels: ["lcm", "gcd"]
-.lcm
-	op: call 		dest: lcm		type: int		args: ["u", "n"]		funcs: ["lcm"]
-	op: div  		dest: ordu		type: int		args: ["lcm", "u"]	
-	op: jmp  		labels: ["for.body.print"]
-.gcd
-	op: call 		dest: gcdun		type: int		args: ["u", "n"]		funcs: ["gcd"]
-	op: div  		dest: ordu		type: int		args: ["n", "gcdun"]	
-.for.body.print
-	op: print		args: ["u", "ordu"]	
-	op: const		dest: one		type: int		value: 1	
-	op: add  		dest: u 		type: int		args: ["u", "one"]	
-	op: jmp  		labels: ["for.cond"]
-.for.finish
-	op: ret  	
-@main
-	op: const		dest: zero		type: int		value: 0	
-	op: const		dest: u 		type: int		value: 1	
-	op: call 		dest: n 		type: int		args: ["n"]		funcs: ["abs"]
-	op: print		args: ["zero", "u"]	
-	op: call 		args: ["u", "n", "use_lcm"]		funcs: ["orders"]
+0 1
+1 96
+2 48
+3 32
+4 24
+5 96
+6 16
+7 96
+8 12
+9 32
+10 48
+11 96
+12 8
+13 96
+14 48
+15 32
+16 6
+17 96
+18 16
+19 96
+20 24
+21 32
+22 48
+23 96
+24 4
+25 96
+26 48
+27 32
+28 24
+29 96
+30 16
+31 96
+32 3
+33 32
+34 48
+35 96
+36 8
+37 96
+38 48
+39 32
+40 12
+41 96
+42 16
+43 96
+44 24
+45 32
+46 48
+47 96
+48 2
+49 96
+50 48
+51 32
+52 24
+53 96
+54 16
+55 96
+56 12
+57 32
+58 48
+59 96
+60 8
+61 96
+62 48
+63 32
+64 3
+65 96
+66 16
+67 96
+68 24
+69 32
+70 48
+71 96
+72 4
+73 96
+74 48
+75 32
+76 24
+77 96
+78 16
+79 96
+80 6
+81 32
+82 48
+83 96
+84 8
+85 96
+86 48
+87 32
+88 12
+89 96
+90 16
+91 96
+92 24
+93 32
+94 48
+95 96

@@ -1,24 +1,2 @@
-@main
-	op: jmp  		labels: ["start"]
-.end
-	op: print		args: ["x_0_2"]	
-	op: print		args: ["x_1_2"]	
-	op: ret  	
-.l_1_3
-	op: jmp  		labels: ["end"]
-.l_1_2
-	op: const		dest: x_1_2		type: int		value: 0	
-	op: jmp  		labels: ["l_1_3"]
-.l_1_1
-	op: const		dest: x_1_1		type: int		value: 1	
-	op: jmp  		labels: ["l_1_3"]
-.l_0_3
-	op: br   		args: ["b1"]		labels: ["l_1_1", "l_1_2"]
-.l_0_2
-	op: const		dest: x_0_2		type: int		value: 2	
-	op: jmp  		labels: ["l_0_3"]
-.l_0_1
-	op: const		dest: x_0_1		type: int		value: 3	
-	op: jmp  		labels: ["l_0_3"]
-.start
-	op: br   		args: ["b0"]		labels: ["l_0_1", "l_0_2"]
+2
+0

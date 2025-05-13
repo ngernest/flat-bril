@@ -1,53 +1,168 @@
-@main
-.for.outer.init
-	op: const		dest: t0		type: int		value: 2	
-	op: lt   		dest: t1		type: bool		args: ["a", "t0"]	
-	op: br   		args: ["t1"]		labels: ["true", "false"]
-.true
-	op: const		dest: t2		type: int		value: 2	
-	op: jmp  		labels: ["for.outer.cond"]
-.false
-	op: id   		dest: t2		type: int		args: ["a"]	
-.for.outer.cond
-	op: le   		dest: t3		type: bool		args: ["t2", "b"]	
-	op: br   		args: ["t3"]		labels: ["for.outer.body", "for.outer.end"]
-.for.outer.body
-	op: const		dest: t4		type: int		value: 1	
-	op: eq   		dest: t5		type: bool		args: ["t4", "t4"]	
-.for.inner.init
-	op: const		dest: t6		type: int		value: 2	
-	op: const		dest: t7		type: int		value: 2	
-.for.inner.cond
-	op: div  		dest: t8		type: int		args: ["t2", "t7"]	
-	op: le   		dest: t9		type: bool		args: ["t6", "t8"]	
-	op: br   		args: ["t9"]		labels: ["for.inner.body", "for.inner.end"]
-.for.inner.body
-	op: call 		dest: t10		type: int		args: ["t2", "t6"]		funcs: ["mod"]
-	op: const		dest: t11		type: int		value: 0	
-	op: eq   		dest: t12		type: bool		args: ["t10", "t11"]	
-	op: br   		args: ["t12"]		labels: ["if.inner.body", "if.inner.end"]
-.if.inner.body
-	op: const		dest: t13		type: int		value: 1	
-	op: const		dest: t14		type: int		value: 2	
-	op: eq   		dest: t5		type: bool		args: ["t13", "t14"]	
-	op: jmp  		labels: ["for.inner.end"]
-.if.inner.end
-	op: const		dest: t15		type: int		value: 1	
-	op: add  		dest: t6		type: int		args: ["t15", "t6"]	
-	op: jmp  		labels: ["for.inner.cond"]
-.for.inner.end
-	op: const		dest: t16		type: int		value: 1	
-	op: add  		dest: t6		type: int		args: ["t6", "t16"]	
-	op: br   		args: ["t5"]		labels: ["if.outer.body", "if.outer.end"]
-.if.outer.body
-	op: print		args: ["t2"]	
-.if.outer.end
-	op: const		dest: t17		type: int		value: 1	
-	op: add  		dest: t2		type: int		args: ["t2", "t17"]	
-	op: jmp  		labels: ["for.outer.cond"]
-.for.outer.end
-@mod
-	op: div  		dest: t1		type: int		args: ["a", "b"]	
-	op: mul  		dest: t2		type: int		args: ["b", "t1"]	
-	op: sub  		dest: t3		type: int		args: ["a", "t2"]	
-	op: ret  		args: ["t3"]	
+2
+3
+5
+7
+11
+13
+17
+19
+23
+29
+31
+37
+41
+43
+47
+53
+59
+61
+67
+71
+73
+79
+83
+89
+97
+101
+103
+107
+109
+113
+127
+131
+137
+139
+149
+151
+157
+163
+167
+173
+179
+181
+191
+193
+197
+199
+211
+223
+227
+229
+233
+239
+241
+251
+257
+263
+269
+271
+277
+281
+283
+293
+307
+311
+313
+317
+331
+337
+347
+349
+353
+359
+367
+373
+379
+383
+389
+397
+401
+409
+419
+421
+431
+433
+439
+443
+449
+457
+461
+463
+467
+479
+487
+491
+499
+503
+509
+521
+523
+541
+547
+557
+563
+569
+571
+577
+587
+593
+599
+601
+607
+613
+617
+619
+631
+641
+643
+647
+653
+659
+661
+673
+677
+683
+691
+701
+709
+719
+727
+733
+739
+743
+751
+757
+761
+769
+773
+787
+797
+809
+811
+821
+823
+827
+829
+839
+853
+857
+859
+863
+877
+881
+883
+887
+907
+911
+919
+929
+937
+941
+947
+953
+967
+971
+977
+983
+991
+997

@@ -1,21 +1,4 @@
-@main
-	op: const		dest: zer		type: int		value: 0	
-	op: const		dest: one		type: int		value: 1	
-	op: const		dest: fac		type: int		value: 2	
-.loopcheck
-	op: lt   		dest: ispos		type: bool		args: ["one", "num"]	
-	op: br   		args: ["ispos"]		labels: ["loopbody", "loopend"]
-.loopbody
-	op: div  		dest: quo		type: int		args: ["num", "fac"]	
-	op: mul  		dest: tmp		type: int		args: ["quo", "fac"]	
-	op: sub  		dest: mod		type: int		args: ["num", "tmp"]	
-	op: eq   		dest: iszero		type: bool		args: ["mod", "zer"]	
-	op: br   		args: ["iszero"]		labels: ["ifyes", "ifno"]
-.ifyes
-	op: print		args: ["fac"]	
-	op: div  		dest: num		type: int		args: ["num", "fac"]	
-	op: jmp  		labels: ["loopcheck"]
-.ifno
-	op: add  		dest: fac		type: int		args: ["fac", "one"]	
-	op: jmp  		labels: ["loopcheck"]
-.loopend
+2
+2
+3
+5

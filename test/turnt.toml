@@ -1,7 +1,13 @@
 [envs.json]
 command = "bril2json < {filename} | cargo run -- --json"
-output.json = "-"
+output."json_roundtrip" = "-"
 
-[envs.roundtrip]
-command = "bril2json < {filename} | cargo run | brili {args}"
-output.roundtrip = "-"
+[envs.interp]
+command = "base=`echo {filename} | cut -d . -f 1`; g=${{base}}.fbril; cargo run -- --filename $g --interp {args}"
+output.out = "-"
+
+
+# [envs.brili]
+# command = "bril2json < {filename} | brili {args}"
+# output.out = "-"
+

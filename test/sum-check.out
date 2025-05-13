@@ -1,27 +1,3 @@
-@main
-	op: call 		dest: first		type: int		args: ["n"]		funcs: ["sum_by_loop"]
-	op: call 		dest: second		type: int		args: ["n"]		funcs: ["sum_by_formula"]
-	op: eq   		dest: isSame		type: bool		args: ["first", "second"]	
-	op: print		args: ["first"]	
-	op: print		args: ["second"]	
-	op: print		args: ["isSame"]	
-@sum_by_loop
-	op: const		dest: one		type: int		value: 1	
-	op: const		dest: sum		type: int		value: 0	
-	op: const		dest: i 		type: int		value: 1	
-.for_start
-	op: le   		dest: con		type: bool		args: ["i", "n"]	
-	op: br   		args: ["con"]		labels: ["for", "end"]
-.for
-	op: add  		dest: sum		type: int		args: ["sum", "i"]	
-	op: add  		dest: i 		type: int		args: ["i", "one"]	
-	op: jmp  		labels: ["for_start"]
-.end
-	op: ret  		args: ["sum"]	
-@sum_by_formula
-	op: const		dest: one		type: int		value: 1	
-	op: const		dest: two		type: int		value: 2	
-	op: add  		dest: n_1		type: int		args: ["one", "n"]	
-	op: mul  		dest: multi		type: int		args: ["n_1", "n"]	
-	op: div  		dest: sum		type: int		args: ["multi", "two"]	
-	op: ret  		args: ["sum"]	
+500500
+500500
+true

@@ -1,7 +1,1 @@
-@abs
-	op: ret  		args: ["x"]	
-.label435
-@main
-	op: const		dest: x 		type: int		value: 42	
-	op: call 		dest: y 		type: int		args: ["x"]		funcs: ["abs"]
-	op: print		args: ["y"]	
+42

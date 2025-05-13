@@ -1,5 +1,1 @@
-@main
-	op: const		dest: v 		type: int		value: 4	
-	op: print		args: ["v"]	
-	op: ret  	
-	op: print		args: ["v"]	
+4

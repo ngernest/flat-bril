@@ -1,18 +1,8 @@
-@main
-	op: call 		args: ["n"]		funcs: ["printBinary"]
-@printBinary
-	op: const		dest: zero		type: int		value: 0	
-	op: eq   		dest: cond		type: bool		args: ["n", "zero"]	
-	op: br   		args: ["cond"]		labels: ["end", "rec"]
-.rec
-	op: const		dest: two		type: int		value: 2	
-	op: call 		dest: v0		type: int		args: ["n", "two"]		funcs: ["mod"]
-	op: div  		dest: v1		type: int		args: ["n", "two"]	
-	op: call 		args: ["v1"]		funcs: ["printBinary"]
-	op: print		args: ["v0"]	
-.end
-@mod
-	op: div  		dest: v0		type: int		args: ["a0", "a1"]	
-	op: mul  		dest: v1		type: int		args: ["v0", "a1"]	
-	op: sub  		dest: v2		type: int		args: ["a0", "v1"]	
-	op: ret  		args: ["v2"]	
+1
+0
+0
+0
+0
+0
+0
+0

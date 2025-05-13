@@ -1,17 +1,7 @@
-@hanoi
-	op: const		dest: zero		type: int		value: 0	
-	op: gt   		dest: pos		type: bool		args: ["disks", "zero"]	
-	op: br   		args: ["pos"]		labels: ["then", "else"]
-.then
-	op: const		dest: one		type: int		value: 1	
-	op: sub  		dest: above		type: int		args: ["disks", "one"]	
-	op: call 		args: ["above", "src", "spare", "dst"]		funcs: ["hanoi"]
-	op: print		args: ["src", "dst"]	
-	op: call 		args: ["above", "spare", "dst", "src"]		funcs: ["hanoi"]
-.else
-	op: ret  	
-@main
-	op: const		dest: src		type: int		value: 0	
-	op: const		dest: dst		type: int		value: 2	
-	op: const		dest: spare		type: int		value: 1	
-	op: call 		args: ["disks", "src", "dst", "spare"]		funcs: ["hanoi"]
+0 2
+0 1
+2 1
+0 2
+1 0
+1 2
+0 2

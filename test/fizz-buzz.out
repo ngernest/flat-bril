@@ -1,70 +1,100 @@
-@main
-	op: const		dest: v1		type: int		value: 1	
-	op: id   		dest: index		type: int		args: ["v1"]	
-.for.cond.0
-	op: id   		dest: v2		type: int		args: ["index"]	
-	op: lt   		dest: v4		type: bool		args: ["v2", "input"]	
-	op: br   		args: ["v4"]		labels: ["for.body.0", "for.end.0"]
-.for.body.0
-	op: id   		dest: v5		type: int		args: ["index"]	
-	op: const		dest: v6		type: int		value: 3	
-	op: div  		dest: v7		type: int		args: ["v5", "v6"]	
-	op: id   		dest: div3		type: int		args: ["v7"]	
-	op: id   		dest: v8		type: int		args: ["div3"]	
-	op: const		dest: v9		type: int		value: 3	
-	op: mul  		dest: v10		type: int		args: ["v8", "v9"]	
-	op: id   		dest: v11		type: int		args: ["index"]	
-	op: eq   		dest: v12		type: bool		args: ["v10", "v11"]	
-	op: id   		dest: isFizz		type: bool		args: ["v12"]	
-	op: id   		dest: v13		type: int		args: ["index"]	
-	op: const		dest: v14		type: int		value: 5	
-	op: div  		dest: v15		type: int		args: ["v13", "v14"]	
-	op: id   		dest: div5		type: int		args: ["v15"]	
-	op: id   		dest: v16		type: int		args: ["div5"]	
-	op: const		dest: v17		type: int		value: 5	
-	op: mul  		dest: v18		type: int		args: ["v16", "v17"]	
-	op: id   		dest: v19		type: int		args: ["index"]	
-	op: eq   		dest: v20		type: bool		args: ["v18", "v19"]	
-	op: id   		dest: isBuzz		type: bool		args: ["v20"]	
-	op: id   		dest: v22		type: bool		args: ["isFizz"]	
-	op: br   		args: ["v22"]		labels: ["then.21", "else.21"]
-.then.21
-	op: id   		dest: v24		type: bool		args: ["isBuzz"]	
-	op: br   		args: ["v24"]		labels: ["then.23", "else.23"]
-.then.23
-	op: const		dest: v25		type: int		value: 0	
-	op: const		dest: v26		type: int		value: 1	
-	op: sub  		dest: v27		type: int		args: ["v25", "v26"]	
-	op: print		args: ["v27"]	
-	op: const		dest: v28		type: int		value: 0	
-	op: jmp  		labels: ["endif.23"]
-.else.23
-	op: const		dest: v29		type: int		value: 0	
-	op: const		dest: v30		type: int		value: 2	
-	op: sub  		dest: v31		type: int		args: ["v29", "v30"]	
-	op: print		args: ["v31"]	
-	op: const		dest: v32		type: int		value: 0	
-.endif.23
-	op: jmp  		labels: ["endif.21"]
-.else.21
-	op: id   		dest: v34		type: bool		args: ["isBuzz"]	
-	op: br   		args: ["v34"]		labels: ["then.33", "else.33"]
-.then.33
-	op: const		dest: v35		type: int		value: 0	
-	op: const		dest: v36		type: int		value: 3	
-	op: sub  		dest: v37		type: int		args: ["v35", "v36"]	
-	op: print		args: ["v37"]	
-	op: const		dest: v38		type: int		value: 0	
-	op: jmp  		labels: ["endif.33"]
-.else.33
-	op: id   		dest: v39		type: int		args: ["index"]	
-	op: print		args: ["v39"]	
-	op: const		dest: v40		type: int		value: 0	
-.endif.33
-.endif.21
-	op: id   		dest: v41		type: int		args: ["index"]	
-	op: const		dest: v42		type: int		value: 1	
-	op: add  		dest: v43		type: int		args: ["v41", "v42"]	
-	op: id   		dest: index		type: int		args: ["v43"]	
-	op: jmp  		labels: ["for.cond.0"]
-.for.end.0
+1
+2
+-2
+4
+-3
+-2
+7
+8
+-2
+-3
+11
+-2
+13
+14
+-1
+16
+17
+-2
+19
+-3
+-2
+22
+23
+-2
+-3
+26
+-2
+28
+29
+-1
+31
+32
+-2
+34
+-3
+-2
+37
+38
+-2
+-3
+41
+-2
+43
+44
+-1
+46
+47
+-2
+49
+-3
+-2
+52
+53
+-2
+-3
+56
+-2
+58
+59
+-1
+61
+62
+-2
+64
+-3
+-2
+67
+68
+-2
+-3
+71
+-2
+73
+74
+-1
+76
+77
+-2
+79
+-3
+-2
+82
+83
+-2
+-3
+86
+-2
+88
+89
+-1
+91
+92
+-2
+94
+-3
+-2
+97
+98
+-2
+-3

@@ -1,17 +1,1 @@
-@mccarthy91
-	op: const		dest: ten		type: int		value: 10	
-	op: const		dest: eleven		type: int		value: 11	
-	op: const		dest: hundred		type: int		value: 100	
-	op: gt   		dest: big		type: bool		args: ["n", "hundred"]	
-	op: br   		args: ["big"]		labels: ["big", "small"]
-.big
-	op: sub  		dest: tmp		type: int		args: ["n", "ten"]	
-	op: ret  		args: ["tmp"]	
-.small
-	op: add  		dest: tmp		type: int		args: ["n", "eleven"]	
-	op: call 		dest: tmp		type: int		args: ["tmp"]		funcs: ["mccarthy91"]
-	op: call 		dest: tmp		type: int		args: ["tmp"]		funcs: ["mccarthy91"]
-	op: ret  		args: ["tmp"]	
-@main
-	op: call 		dest: result		type: int		args: ["n"]		funcs: ["mccarthy91"]
-	op: print		args: ["result"]	
+91

@@ -1,15 +1,3 @@
-@main
-	op: call 		dest: a1		type: int		args: ["x1", "y1"]		funcs: ["area"]
-	op: call 		dest: a2		type: int		args: ["x2", "y2"]		funcs: ["area"]
-	op: sub  		dest: res		type: int		args: ["a1", "a2"]	
-	op: gt   		dest: a1_bigger		type: bool		args: ["a1", "a2"]	
-	op: br   		args: ["a1_bigger"]		labels: ["end", "flip"]
-.flip
-	op: const		dest: neg1		type: int		value: -1	
-	op: mul  		dest: res		type: int		args: ["res", "neg1"]	
-.end
-	op: print		args: ["res"]	
-@area
-	op: mul  		dest: area		type: int		args: ["x", "y"]	
-	op: print		args: ["area"]	
-	op: ret  		args: ["area"]	
+50
+78
+28
