@@ -247,6 +247,7 @@ pub fn interp_call<'a>(
 
         let (args_start, args_end): (u32, u32) = instr.args.into();
 
+        // Args supplied to call instruction
         let args = get_args(instr_view, args_start, args_end);
         let args_values: Vec<&BrilValue> = args
             .into_iter()
@@ -258,7 +259,10 @@ pub fn interp_call<'a>(
             // Check typing
             let (start_idx, end_idx): (u32, u32) =
                 flat_arg.arg_name_idxes.into();
-            let arg_name = get_var(instr_view, start_idx, end_idx);
+
+            // Function args
+            let arg_name = get_var(call_view, start_idx, end_idx);
+
             let desired_arg_type: FlatType = flat_arg.arg_type;
             let actual_arg_type: FlatType = arg_value.get_type().into();
             match (desired_arg_type, actual_arg_type) {
@@ -303,6 +307,8 @@ pub fn interp_instr_view<'a>(
     env: &mut Environment<'a>,
     funcs: &HashMap<&str, &InstrView>,
 ) -> Result<Option<BrilValue>, String> {
+    let func_name = str::from_utf8(instr_view.func_name).unwrap();
+
     let mut current_instr_ptr = 0; // Initialize program counter
 
     while current_instr_ptr < instr_view.instrs.len() {
@@ -343,6 +349,9 @@ pub fn interp_instr_view<'a>(
                     let arg = args[0];
                     let value_of_arg =
                         env.get(arg).expect("arg missing from env");
+
+                    // Actually print out the value of the argument
+                    // NOTE TO SELF: DO NOT REMOVE THIS PRINTLN
                     println!("{value_of_arg}");
                     current_instr_ptr += 1;
                 } else if let Opcode::Jmp = op {
