@@ -28,6 +28,7 @@ fn main() {
                 .long("interp")
                 .action(ArgAction::Append)
                 .num_args(0..)
+                .allow_hyphen_values(true)
                 .value_name("VALUES"),
         )
         .arg(Arg::new("json").long("json").action(ArgAction::SetTrue))
