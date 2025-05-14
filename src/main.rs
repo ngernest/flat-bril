@@ -20,11 +20,6 @@ mod unflatten;
 // To interpret a file: `cargo run -- --filename test/call.fbril --interp`
 
 fn main() {
-    // Enable stack backtrace for debugging
-    unsafe {
-        std::env::set_var("RUST_BACKTRACE", "1");
-    }
-
     let matches = Command::new("flat-bril")
         .arg(
             Arg::new("interp")

@@ -184,11 +184,6 @@ pub fn get_instr_view(data: &[u8]) -> InstrView {
 
 /// Writes a JSON Bril program to a mmap-ed flat Bril file
 pub fn json_to_fbril(output_file: String) {
-    // Enable stack backtrace for debugging
-    unsafe {
-        std::env::set_var("RUST_BACKTRACE", "1");
-    }
-
     // Read in the JSON representation of a Bril file from stdin
     let mut buffer = String::new();
     std::io::stdin()
