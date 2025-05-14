@@ -11,8 +11,11 @@ mod memfile;
 mod types;
 mod unflatten;
 
-// To create an fbril file:
+// To create an `.fbril` file from an existing `.bril` file, do one of the following:
+// 1. Convert a `.bril` file to JSON using `bril2json`, then redirect it to `cargo run`:
 // `bril2json < test/call.bril | cargo run -- --filename test/call.fbril --fbril`
+// 2. Read in an existing JSON file
+// `cargo run -- --json --filename test/call.json`
 
 // To interpret a file: `cargo run -- --filename test/call.fbril --interp`
 
@@ -49,8 +52,9 @@ fn main() {
         .get_matches();
 
     if matches.get_flag("json") {
+        let input_json_opt = matches.get_one::<String>("filename");
         // Check that JSON -> flat -> JSON round trip works
-        json_roundtrip::json_roundtrip();
+        json_roundtrip::json_roundtrip(input_json_opt.cloned(), false);
     } else if matches.get_flag("fbril") {
         // Convert the JSON Bril program to a flat Bril program
         match matches.get_one::<String>("filename") {
