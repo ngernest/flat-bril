@@ -5,4 +5,5 @@ fbril2
 *.fbril
 benchmark_results/*
 *.png
+*.json.gz
 
