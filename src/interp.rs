@@ -234,11 +234,9 @@ pub fn interp_call<'a>(
                 let (dest_start, dest_end): (u32, u32) = instr.dest.into();
                 let dest_var = get_var(instr_view, dest_start, dest_end);
                 env.insert(dest_var, ret_value);
-                return;
             }
             InstrKind::EffectOp => {
                 // There's no dest if it's an effect-op, so we're done
-                return;
             }
             _ => unreachable!(),
         }
@@ -277,7 +275,9 @@ pub fn interp_call<'a>(
                     panic!("encountered null type for function argument");
                 }
                 (_, _) => {
-                    panic!("Type of supplied argument doesn't match expected type of function argument");
+                    panic!(
+                        "Type of supplied argument doesn't match expected type of function argument"
+                    );
                 }
             }
         }
@@ -292,7 +292,6 @@ pub fn interp_call<'a>(
                 let (dest_start, dest_end): (u32, u32) = instr.dest.into();
                 let dest_var = get_var(instr_view, dest_start, dest_end);
                 env.insert(dest_var, ret_value.expect("missing return value"));
-                return;
             }
             InstrKind::EffectOp => {
                 // There is no return value, so we can just ignore the result
@@ -301,7 +300,6 @@ pub fn interp_call<'a>(
                     .expect("error interpreting function call");
 
                 // There's no dest if it's an effect-op, so we're done
-                return;
             }
             _ => unreachable!(),
         }
@@ -443,7 +441,9 @@ pub fn interp_instr_view<'a>(
                             continue;
                         }
                     } else {
-                        panic!("argument to br instruction is ill-typed (doesn't have type bool)");
+                        panic!(
+                            "argument to br instruction is ill-typed (doesn't have type bool)"
+                        );
                     }
                 } else if let Opcode::Call = op {
                     interp_call(instr_view, env, funcs, instr, instr_kind);
@@ -535,6 +535,6 @@ pub fn interp_program(program: &[InstrView], cmd_line_args: Vec<&str>) {
         }
     }
 
-    interp_instr_view(funcs["main"], &mut env, &mut funcs)
+    interp_instr_view(funcs["main"], &mut env, &funcs)
         .expect("unexpected error when interpreting main");
 }

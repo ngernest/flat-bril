@@ -114,7 +114,7 @@ pub fn pad_vec(mut vec: Vec<u8>) -> Vec<u8> {
 
     let padding_size = 4 - remainder;
 
-    vec.extend(std::iter::repeat(0).take(padding_size));
+    vec.extend(std::iter::repeat_n(0, padding_size));
 
     vec
 }
@@ -201,9 +201,8 @@ pub fn json_to_fbril(output_file: String) {
 
     // we only allow 10 functions right now
     let mut sizes_arr: [u64; 10] = [0; 10];
-    let mut sizes_idx = 0;
 
-    for func in functions {
+    for (sizes_idx, func) in functions.iter().enumerate() {
         let instr_store: InstrStore = flatten::flatten_instrs(func);
 
         // Convert an `InstrStore` to an `InstrView`
@@ -219,7 +218,7 @@ pub fn json_to_fbril(output_file: String) {
         let flat_func_ret_ty: FlatType = instr_store.func_ret_ty.into();
 
         let padded_var_store = pad_vec(instr_store.var_store);
-        let flat_var_store: &[u8] = &padded_var_store.as_slice();
+        let flat_var_store: &[u8] = padded_var_store.as_slice();
         let flat_arg_idxes_vec: Vec<I32Pair> = instr_store
             .args_idxes_store
             .into_iter()
@@ -260,7 +259,6 @@ pub fn json_to_fbril(output_file: String) {
         let instr_view_bytes = convert_instr_view_to_bytes(&instr_view);
         buffer.extend_from_slice(&instr_view_bytes);
         sizes_arr[sizes_idx] = instr_view_bytes.len() as u64;
-        sizes_idx += 1;
     }
 
     let header = Header { sizes: sizes_arr };

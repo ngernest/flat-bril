@@ -7,7 +7,7 @@ use crate::unflatten;
 /// Does a round trip from JSON -> flattened representation -> back to JSON
 /// - `input_json` is the filename of the input JSON (if supplied)
 /// - if `verbose = true`, the resultant JSON from the round-trip is
-/// printed to `stdout`
+///   printed to `stdout`
 pub fn json_roundtrip(input_json: Option<String>, verbose: bool) {
     // Parse the JSON into serde_json's `Value` datatype
     let json: serde_json::Value = if let Some(path) = input_json {

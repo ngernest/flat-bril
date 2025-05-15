@@ -439,18 +439,17 @@ impl InstrView<'_> {
     /// NOTE: This function is broken! don't use it for now
     pub fn total_size_in_bytes(&self) -> u64 {
         let toc_num_bytes = size_of::<Toc>();
-        let func_name_num_bytes = self.func_name.len() * size_of::<u8>();
-        let func_args_num_bytes =
-            self.func_args.len() * size_of::<FlatFuncArg>();
+        let func_name_num_bytes = std::mem::size_of_val(self.func_name);
+        let func_args_num_bytes = std::mem::size_of_val(self.func_args);
         let func_ret_ty_num_bytes = size_of::<FlatType>();
-        let var_store_num_bytes = self.var_store.len() * size_of::<u8>();
+        let var_store_num_bytes = std::mem::size_of_val(self.var_store);
         let arg_idxes_store_num_bytes =
-            self.arg_idxes_store.len() * size_of::<I32Pair>();
+            std::mem::size_of_val(self.arg_idxes_store);
         let labels_idxes_store_num_bytes =
-            self.labels_idxes_store.len() * size_of::<I32Pair>();
-        let labels_store_num_bytes = self.labels_store.len() * size_of::<u8>();
-        let funcs_store_num_bytes = self.funcs_store.len() * size_of::<u8>();
-        let instrs_num_bytes = self.instrs.len() * size_of::<FlatInstr>();
+            std::mem::size_of_val(self.labels_idxes_store);
+        let labels_store_num_bytes = std::mem::size_of_val(self.labels_store);
+        let funcs_store_num_bytes = std::mem::size_of_val(self.funcs_store);
+        let instrs_num_bytes = std::mem::size_of_val(self.instrs);
 
         (toc_num_bytes
             + func_name_num_bytes
