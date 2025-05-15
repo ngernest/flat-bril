@@ -27,22 +27,24 @@ fn main() {
                 .action(ArgAction::Append)
                 .num_args(0..)
                 .allow_hyphen_values(true)
-                .value_name("VALUES"),
+                .value_name("ARGS_TO_MAIN")
+                .help("Interprets a Flat Bril (.fbril) file"),
         )
-        .arg(Arg::new("json").long("json").action(ArgAction::SetTrue))
+        .arg(Arg::new("json").long("json").action(ArgAction::SetTrue).help("Performs a JSON -> flat representation -> JSON round-trip test"))
         .arg(
             Arg::new("fbril")
                 .long("fbril")
                 .action(ArgAction::SetTrue)
                 .value_name("VALUE")
                 .requires("filename")
-                .help("Output filename"),
+                .help("Produces a Flat Bril (.fbril) file"),
         )
         .arg(
             Arg::new("filename")
                 .long("filename")
                 .help("File to open")
-                .value_name("FILE_TO_OPEN"),
+                .value_name("FILE_TO_OPEN")
+                .help("If `--json` is enabled, then `--filename` is the JSON file to open. If `--interp` is enabled, then `--filename` is the `.fbril` file to write to."),
         )
         .get_matches();
 
