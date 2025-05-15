@@ -1,5 +1,5 @@
 [envs.json]
-command = "bril2json < {filename} | cargo run -- --json"
+command = "bril2json < {filename} | cargo run -- --json --verbose"
 output."json_roundtrip" = "-"
 
 # The Bash commands are for converting a filename like `call.bril` into `call.fbril`

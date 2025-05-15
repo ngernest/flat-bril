@@ -30,7 +30,22 @@ fn main() {
                 .value_name("ARGS_TO_MAIN")
                 .help("Interprets a Flat Bril (.fbril) file"),
         )
-        .arg(Arg::new("json").long("json").action(ArgAction::SetTrue).help("Performs a JSON -> flat representation -> JSON round-trip test"))
+        .arg(
+            Arg::new("json")
+                .long("json")
+                .action(ArgAction::SetTrue)
+                .help("Performs a JSON -> flat representation -> JSON round-trip test")
+        )
+        .arg(
+            Arg::new("verbose")
+                .long("verbose")
+                .action(ArgAction::SetTrue)
+                .requires("json")
+                .help(
+                    "Enables verbose output for JSON operations\n\
+                    (only works when `--json` is also specified)"
+                )
+        )
         .arg(
             Arg::new("fbril")
                 .long("fbril")
@@ -44,14 +59,21 @@ fn main() {
                 .long("filename")
                 .help("File to open")
                 .value_name("FILE_TO_OPEN")
-                .help("If `--json` is enabled, then `--filename` is the JSON file to open. If `--interp` is enabled, then `--filename` is the `.fbril` file to write to."),
+                .help(
+                    "If `--json` is enabled, then `--filename` is the JSON file \
+                    to open.\nIf `--interp` is enabled, then `--filename` is the \
+                    `.fbril` file to write to."
+                ),
         )
         .get_matches();
 
     if matches.get_flag("json") {
         let input_json_opt = matches.get_one::<String>("filename");
+
+        let verbose = matches.get_flag("verbose");
+
         // Check that JSON -> flat -> JSON round trip works
-        json_roundtrip::json_roundtrip(input_json_opt.cloned(), false);
+        json_roundtrip::json_roundtrip(input_json_opt.cloned(), verbose);
     } else if matches.get_flag("fbril") {
         // Convert the JSON Bril program to a flat Bril program
         match matches.get_one::<String>("filename") {
